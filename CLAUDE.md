@@ -109,7 +109,18 @@ crm_meetings_booked   (CRM is source of truth for outcomes)
 
 ## Dashboard
 
-Dashboards live in `dashboards/`. Each file is named `YYYY-MM-DD-vN.html` (e.g., `2026-04-17-v1.html`). When the user says "update dashboard" or "refresh dashboard", pull fresh data and create a new file with today's date and the current version. Update `dashboards/CHANGELOG.md` with what changed.
+### Hosting and update workflow
+- **GitHub repo**: `Aryansethi-25/jeff-analytics-dashboard-v1` (public)
+- **Team URL**: `https://aryansethi-25.github.io/jeff-analytics-dashboard-v1/dashboard.html`
+- **Permanent file**: `dashboard.html` at the repo root — this is what the team sees. Always overwrite this file with the latest data.
+- **Archive**: `dashboards/YYYY-MM-DD-vN.html` — dated snapshot copy. Create one each time the dashboard is updated.
+
+### Update process ("update dashboard")
+1. Pull fresh data from MCP for all sections per the specs below.
+2. Overwrite `dashboard.html` with the new data.
+3. Save an identical copy in `dashboards/` with today's date and version.
+4. Git add, commit, and push to `origin/main`.
+5. GitHub Pages auto-deploys within ~1 minute. Team refreshes to see new data.
 
 When the user says "show analytics" or similar vague requests, run the queries described below and present the data conversationally.
 
