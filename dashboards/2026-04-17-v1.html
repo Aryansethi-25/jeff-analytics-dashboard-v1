@@ -1,0 +1,1040 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MerchantBots Outbound Dashboard</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --card: #1a1d27;
+    --card-border: #2a2d3a;
+    --text: #e4e4e7;
+    --text-muted: #8b8d97;
+    --accent: #6366f1;
+    --accent-light: #818cf8;
+    --green: #22c55e;
+    --green-bg: rgba(34,197,94,0.12);
+    --red: #ef4444;
+    --red-bg: rgba(239,68,68,0.12);
+    --amber: #f59e0b;
+    --amber-bg: rgba(245,158,11,0.12);
+    --blue: #3b82f6;
+    --blue-bg: rgba(59,130,246,0.12);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+    padding: 24px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  /* Header */
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 32px;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  .header h1 {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .header .subtitle {
+    color: var(--text-muted);
+    font-size: 14px;
+    margin-top: 4px;
+  }
+  .last-updated {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+
+  /* Goal Banner */
+  .goal-banner {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
+    display: grid;
+    grid-template-columns: 1fr 2fr 1fr;
+    gap: 24px;
+    align-items: center;
+  }
+  .goal-number {
+    text-align: center;
+  }
+  .goal-number .big {
+    font-size: 48px;
+    font-weight: 800;
+    line-height: 1;
+  }
+  .goal-number .label {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+  .goal-bar-wrap {
+    width: 100%;
+  }
+  .goal-bar-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+  .goal-bar {
+    width: 100%;
+    height: 32px;
+    background: #2a2d3a;
+    border-radius: 16px;
+    overflow: hidden;
+    position: relative;
+  }
+  .goal-bar-fill {
+    height: 100%;
+    border-radius: 16px;
+    transition: width 0.5s ease;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 12px;
+    font-size: 13px;
+    font-weight: 600;
+    color: white;
+  }
+  .goal-bar-target {
+    position: absolute;
+    top: -4px;
+    bottom: -4px;
+    width: 2px;
+    background: var(--amber);
+    z-index: 2;
+  }
+  .goal-bar-target::after {
+    content: 'Goal: 30';
+    position: absolute;
+    top: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 11px;
+    color: var(--amber);
+    white-space: nowrap;
+  }
+  .goal-status {
+    text-align: center;
+  }
+  .goal-status .badge {
+    display: inline-block;
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .badge-green { background: var(--green-bg); color: var(--green); }
+  .badge-red { background: var(--red-bg); color: var(--red); }
+  .badge-amber { background: var(--amber-bg); color: var(--amber); }
+  .goal-status .detail {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-top: 8px;
+  }
+
+  /* Tabs */
+  .tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 24px;
+    background: var(--card);
+    border-radius: 10px;
+    padding: 4px;
+    border: 1px solid var(--card-border);
+    width: fit-content;
+  }
+  .tab {
+    padding: 8px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-muted);
+    border: none;
+    background: none;
+    transition: all 0.2s;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.active {
+    background: var(--accent);
+    color: white;
+  }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* KPI Cards */
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .kpi {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    padding: 20px;
+  }
+  .kpi .kpi-label {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+  }
+  .kpi .kpi-value {
+    font-size: 28px;
+    font-weight: 700;
+  }
+  .kpi .kpi-change {
+    font-size: 13px;
+    margin-top: 4px;
+  }
+  .up { color: var(--green); }
+  .down { color: var(--red); }
+  .neutral { color: var(--text-muted); }
+
+  /* Tables */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
+    overflow-x: auto;
+  }
+  .card h3 {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 16px;
+  }
+  .card .card-subtitle {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-top: -12px;
+    margin-bottom: 16px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+  th {
+    text-align: left;
+    padding: 10px 12px;
+    color: var(--text-muted);
+    font-weight: 500;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid var(--card-border);
+    white-space: nowrap;
+  }
+  td {
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(42,45,58,0.5);
+    white-space: nowrap;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(99,102,241,0.04); }
+  .text-right { text-align: right; }
+  .text-center { text-align: center; }
+  .weekend td { color: var(--text-muted); font-style: italic; }
+  .highlight td { background: rgba(99,102,241,0.06); }
+
+  /* Bar chart (CSS) */
+  .bar-cell {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .bar {
+    height: 20px;
+    border-radius: 4px;
+    min-width: 2px;
+    transition: width 0.3s;
+  }
+  .bar-blue { background: var(--blue); }
+  .bar-green { background: var(--green); }
+  .bar-accent { background: var(--accent); }
+  .bar-amber { background: var(--amber); }
+  .bar-red { background: var(--red); }
+
+  /* Series cards */
+  .series-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .series-card {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    padding: 20px;
+  }
+  .series-card .series-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+  .series-card .series-name {
+    font-size: 16px;
+    font-weight: 600;
+  }
+  .series-card .series-rank {
+    font-size: 12px;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-weight: 600;
+  }
+  .rank-1 { background: rgba(234,179,8,0.15); color: #eab308; }
+  .rank-2 { background: rgba(148,163,184,0.15); color: #94a3b8; }
+  .rank-3 { background: rgba(180,83,9,0.15); color: #d97706; }
+  .rank-other { background: rgba(100,100,120,0.1); color: var(--text-muted); }
+  .series-card .series-stat {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    font-size: 14px;
+    border-bottom: 1px solid rgba(42,45,58,0.5);
+  }
+  .series-card .series-stat:last-child { border-bottom: none; }
+  .series-card .stat-label { color: var(--text-muted); }
+
+  /* Funnel visualization */
+  .funnel {
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    margin: 24px 0;
+    height: 200px;
+  }
+  .funnel-step {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    height: 100%;
+  }
+  .funnel-bar {
+    width: 100%;
+    border-radius: 6px 6px 0 0;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: white;
+    min-height: 30px;
+  }
+  .funnel-label {
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--text-muted);
+    text-align: center;
+  }
+  .funnel-rate {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 2px;
+    text-align: center;
+  }
+
+  /* Callout */
+  .callout {
+    border-left: 3px solid;
+    padding: 12px 16px;
+    border-radius: 0 8px 8px 0;
+    margin-bottom: 16px;
+    font-size: 14px;
+  }
+  .callout-green { border-color: var(--green); background: var(--green-bg); }
+  .callout-red { border-color: var(--red); background: var(--red-bg); }
+  .callout-amber { border-color: var(--amber); background: var(--amber-bg); }
+  .callout-blue { border-color: var(--blue); background: var(--blue-bg); }
+
+  /* Experiment log */
+  .experiment {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+  .experiment .exp-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .experiment .exp-title { font-weight: 600; }
+  .experiment .exp-status {
+    font-size: 12px;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-weight: 500;
+  }
+  .status-running { background: var(--blue-bg); color: var(--blue); }
+  .status-not-started { background: rgba(100,100,120,0.15); color: var(--text-muted); }
+  .status-issue { background: var(--red-bg); color: var(--red); }
+  .experiment p { font-size: 14px; color: var(--text-muted); margin-top: 4px; }
+
+  .footer {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 12px;
+    margin-top: 48px;
+    padding-top: 24px;
+    border-top: 1px solid var(--card-border);
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div>
+    <h1>MerchantBots Outbound</h1>
+    <div class="subtitle">Cold email funnel analytics &mdash; Goal: 30 meetings/week</div>
+  </div>
+  <div class="last-updated">Last updated: Apr 17, 2026 &middot; Data through Apr 16</div>
+</div>
+
+<!-- GOAL PACING BANNER -->
+<div class="goal-banner">
+  <div class="goal-number">
+    <div class="big" style="color: var(--green);">34</div>
+    <div class="label">Meetings this week</div>
+  </div>
+  <div class="goal-bar-wrap">
+    <div class="goal-bar-label">
+      <span>Week of Apr 13 &mdash; 4 of 5 weekdays complete</span>
+      <span>34 / 30</span>
+    </div>
+    <div class="goal-bar" style="position:relative;">
+      <div class="goal-bar-fill" style="width: 100%; background: linear-gradient(90deg, var(--accent), var(--green));">
+        113%
+      </div>
+      <div class="goal-bar-target" style="left: 88.2%;"></div>
+    </div>
+  </div>
+  <div class="goal-status">
+    <div class="badge badge-green">AHEAD OF GOAL</div>
+    <div class="detail">Already hit 30. Fri is bonus.<br>Projected: 34&ndash;40</div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <button class="tab active" onclick="showTab('daily')">Daily Trend</button>
+  <button class="tab" onclick="showTab('weekly')">Weekly Review</button>
+  <button class="tab" onclick="showTab('series')">Series Leaderboard</button>
+  <button class="tab" onclick="showTab('pacing')">Goal Pacing</button>
+  <button class="tab" onclick="showTab('experiments')">Experiments</button>
+</div>
+
+<!-- ==================== DAILY TAB ==================== -->
+<div id="daily" class="tab-content active">
+
+  <!-- KPIs for the most recent day -->
+  <div class="kpi-row">
+    <div class="kpi">
+      <div class="kpi-label">Prospects Reached (Apr 16)</div>
+      <div class="kpi-value">9,634</div>
+      <div class="kpi-change down">-24% vs prior day</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Emails Sent</div>
+      <div class="kpi-value">22,343</div>
+      <div class="kpi-change neutral">~flat vs prior day</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Meetings Booked</div>
+      <div class="kpi-value">7</div>
+      <div class="kpi-change down">-36% vs prior day (11)</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Booking Rate</div>
+      <div class="kpi-value">0.07%</div>
+      <div class="kpi-change down">vs 0.09% prior day</div>
+    </div>
+  </div>
+
+  <!-- Funnel visualization for most recent day -->
+  <div class="card">
+    <h3>Funnel &mdash; Apr 16</h3>
+    <div class="funnel">
+      <div class="funnel-step">
+        <div class="funnel-bar" style="height:100%; background: var(--accent);">9,634</div>
+        <div class="funnel-label">Prospects</div>
+      </div>
+      <div class="funnel-step">
+        <div class="funnel-bar" style="height:15.1%; background: var(--blue);">1,455</div>
+        <div class="funnel-label">Replies</div>
+        <div class="funnel-rate">15.1% reply rate</div>
+      </div>
+      <div class="funnel-step">
+        <div class="funnel-bar" style="height:3%; background: var(--amber); min-height:40px;">17</div>
+        <div class="funnel-label">Positive</div>
+        <div class="funnel-rate">0.18% of prospects</div>
+      </div>
+      <div class="funnel-step">
+        <div class="funnel-bar" style="height:2%; background: var(--green); min-height:40px;">7</div>
+        <div class="funnel-label">Meetings</div>
+        <div class="funnel-rate">0.07% booking rate</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Daily table with bars -->
+  <div class="card">
+    <h3>Daily Funnel &mdash; Apr 1 to Apr 16</h3>
+    <p class="card-subtitle">Weekends shown in muted text. Meetings bar scaled to max day.</p>
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Day</th>
+          <th class="text-right">Prospects</th>
+          <th class="text-right">Emails</th>
+          <th class="text-right">Replies</th>
+          <th class="text-right">Positive</th>
+          <th class="text-right">Meetings</th>
+          <th style="width:120px;">Meetings</th>
+          <th class="text-right">Booking Rate</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Apr 1</td><td>Wed</td>
+          <td class="text-right">8,777</td><td class="text-right">18,864</td><td class="text-right">749</td><td class="text-right">11</td>
+          <td class="text-right"><strong>7</strong></td>
+          <td><div class="bar bar-green" style="width:54%"></div></td>
+          <td class="text-right">0.08%</td>
+        </tr>
+        <tr>
+          <td>Apr 2</td><td>Thu</td>
+          <td class="text-right">7,690</td><td class="text-right">19,387</td><td class="text-right">861</td><td class="text-right">11</td>
+          <td class="text-right"><strong>7</strong></td>
+          <td><div class="bar bar-green" style="width:54%"></div></td>
+          <td class="text-right">0.09%</td>
+        </tr>
+        <tr>
+          <td>Apr 3</td><td>Fri</td>
+          <td class="text-right">2,633</td><td class="text-right">7,343</td><td class="text-right">368</td><td class="text-right">12</td>
+          <td class="text-right"><strong>2</strong></td>
+          <td><div class="bar bar-green" style="width:15%"></div></td>
+          <td class="text-right">0.08%</td>
+        </tr>
+        <tr class="weekend">
+          <td>Apr 4</td><td>Sat</td>
+          <td class="text-right">0</td><td class="text-right">3</td><td class="text-right">41</td><td class="text-right">0</td>
+          <td class="text-right">1</td>
+          <td><div class="bar bar-green" style="width:8%"></div></td>
+          <td class="text-right">&mdash;</td>
+        </tr>
+        <tr class="weekend">
+          <td>Apr 5</td><td>Sun</td>
+          <td class="text-right">0</td><td class="text-right">0</td><td class="text-right">9</td><td class="text-right">0</td>
+          <td class="text-right">0</td>
+          <td></td>
+          <td class="text-right">&mdash;</td>
+        </tr>
+        <tr>
+          <td>Apr 6</td><td>Mon</td>
+          <td class="text-right">6,621</td><td class="text-right">15,307</td><td class="text-right">510</td><td class="text-right">8</td>
+          <td class="text-right"><strong>3</strong></td>
+          <td><div class="bar bar-green" style="width:23%"></div></td>
+          <td class="text-right">0.05%</td>
+        </tr>
+        <tr class="highlight">
+          <td>Apr 7</td><td>Tue</td>
+          <td class="text-right">7,450</td><td class="text-right">17,442</td><td class="text-right">697</td><td class="text-right">23</td>
+          <td class="text-right"><strong>12</strong></td>
+          <td><div class="bar bar-green" style="width:92%"></div></td>
+          <td class="text-right" style="color:var(--green);">0.16%</td>
+        </tr>
+        <tr class="highlight">
+          <td>Apr 8</td><td>Wed</td>
+          <td class="text-right">12,043</td><td class="text-right">31,668</td><td class="text-right">1,800</td><td class="text-right">27</td>
+          <td class="text-right"><strong>13</strong></td>
+          <td><div class="bar bar-green" style="width:100%"></div></td>
+          <td class="text-right" style="color:var(--green);">0.11%</td>
+        </tr>
+        <tr class="highlight">
+          <td>Apr 9</td><td>Thu</td>
+          <td class="text-right">9,183</td><td class="text-right">19,569</td><td class="text-right">1,938</td><td class="text-right">19</td>
+          <td class="text-right"><strong>12</strong></td>
+          <td><div class="bar bar-green" style="width:92%"></div></td>
+          <td class="text-right" style="color:var(--green);">0.13%</td>
+        </tr>
+        <tr>
+          <td>Apr 10</td><td>Fri</td>
+          <td class="text-right">3,848</td><td class="text-right">18,136</td><td class="text-right">694</td><td class="text-right">12</td>
+          <td class="text-right"><strong>7</strong></td>
+          <td><div class="bar bar-green" style="width:54%"></div></td>
+          <td class="text-right">0.18%</td>
+        </tr>
+        <tr class="weekend">
+          <td>Apr 11</td><td>Sat</td>
+          <td class="text-right">0</td><td class="text-right">0</td><td class="text-right">89</td><td class="text-right">1</td>
+          <td class="text-right">0</td>
+          <td></td>
+          <td class="text-right">&mdash;</td>
+        </tr>
+        <tr class="weekend">
+          <td>Apr 12</td><td>Sun</td>
+          <td class="text-right">0</td><td class="text-right">0</td><td class="text-right">7</td><td class="text-right">0</td>
+          <td class="text-right">0</td>
+          <td></td>
+          <td class="text-right">&mdash;</td>
+        </tr>
+        <tr>
+          <td>Apr 13</td><td>Mon</td>
+          <td class="text-right">11,550</td><td class="text-right">20,975</td><td class="text-right">1,032</td><td class="text-right">17</td>
+          <td class="text-right"><strong>9</strong></td>
+          <td><div class="bar bar-green" style="width:69%"></div></td>
+          <td class="text-right">0.08%</td>
+        </tr>
+        <tr>
+          <td>Apr 14</td><td>Tue</td>
+          <td class="text-right">8,810</td><td class="text-right">17,686</td><td class="text-right">1,042</td><td class="text-right">14</td>
+          <td class="text-right"><strong>7</strong></td>
+          <td><div class="bar bar-green" style="width:54%"></div></td>
+          <td class="text-right">0.08%</td>
+        </tr>
+        <tr>
+          <td>Apr 15</td><td>Wed</td>
+          <td class="text-right">12,667</td><td class="text-right">22,301</td><td class="text-right">1,956</td><td class="text-right">21</td>
+          <td class="text-right"><strong>11</strong></td>
+          <td><div class="bar bar-green" style="width:85%"></div></td>
+          <td class="text-right">0.09%</td>
+        </tr>
+        <tr>
+          <td>Apr 16</td><td>Thu</td>
+          <td class="text-right">9,634</td><td class="text-right">22,343</td><td class="text-right">1,455</td><td class="text-right">17</td>
+          <td class="text-right"><strong>7</strong></td>
+          <td><div class="bar bar-green" style="width:54%"></div></td>
+          <td class="text-right">0.07%</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout callout-blue">
+    <strong>Apr 7&ndash;9 highlighted:</strong> Best 3-day stretch (12, 13, 12 meetings) driven by Series 13. That series has since stopped sending &mdash; current meetings are running on Series 6, 10, 11 at lower conversion rates.
+  </div>
+</div>
+
+<!-- ==================== WEEKLY TAB ==================== -->
+<div id="weekly" class="tab-content">
+
+  <div class="card">
+    <h3>Week-over-Week Funnel</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Week</th>
+          <th class="text-right">Prospects</th>
+          <th class="text-right">Emails</th>
+          <th class="text-right">Replies</th>
+          <th class="text-right">Reply Rate</th>
+          <th class="text-right">Positive</th>
+          <th class="text-right">Pos. Rate</th>
+          <th class="text-right">Meetings</th>
+          <th class="text-right">Booking Rate</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Mar 23&ndash;29</td>
+          <td class="text-right">37,445</td><td class="text-right">92,231</td><td class="text-right">3,532</td>
+          <td class="text-right">9.4%</td><td class="text-right">40</td><td class="text-right">0.11%</td>
+          <td class="text-right"><strong>17</strong></td><td class="text-right">0.05%</td>
+        </tr>
+        <tr>
+          <td>Mar 30&ndash;Apr 5</td>
+          <td class="text-right">33,661</td><td class="text-right">79,912</td><td class="text-right">3,335</td>
+          <td class="text-right">9.9%</td><td class="text-right">41</td><td class="text-right">0.12%</td>
+          <td class="text-right"><strong>17</strong></td><td class="text-right">0.05%</td>
+        </tr>
+        <tr class="highlight">
+          <td>Apr 6&ndash;12</td>
+          <td class="text-right">34,673</td><td class="text-right">102,122</td><td class="text-right">5,356</td>
+          <td class="text-right">15.5%</td><td class="text-right">51</td><td class="text-right">0.15%</td>
+          <td class="text-right"><strong>24</strong></td><td class="text-right">0.07%</td>
+        </tr>
+        <tr style="background: rgba(99,102,241,0.08);">
+          <td>Apr 13&ndash;16 <span style="color:var(--text-muted);">(partial)</span></td>
+          <td class="text-right">42,661</td><td class="text-right">83,305</td><td class="text-right">5,485</td>
+          <td class="text-right">12.8%</td><td class="text-right">69</td><td class="text-right">0.16%</td>
+          <td class="text-right"><strong>34</strong></td><td class="text-right">0.08%</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="kpi-row">
+    <div class="kpi">
+      <div class="kpi-label">Meetings trend</div>
+      <div class="kpi-value up">17 &rarr; 17 &rarr; 24 &rarr; 34*</div>
+      <div class="kpi-change neutral">*partial week, 4 of 5 weekdays</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Positive reply rate trend</div>
+      <div class="kpi-value up">0.11% &rarr; 0.12% &rarr; 0.15% &rarr; 0.16%</div>
+      <div class="kpi-change up">Improving each week</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Volume trend (emails)</div>
+      <div class="kpi-value">92K &rarr; 80K &rarr; 102K &rarr; 83K*</div>
+      <div class="kpi-change neutral">*4-day partial</div>
+    </div>
+  </div>
+
+  <div class="callout callout-green">
+    <strong>Key takeaway:</strong> Meetings jumped from 17/week (flat for 2 weeks) to 24 last week and 34 in just 4 days this week. The driver is higher positive reply rates (0.11% &rarr; 0.16%), not just more volume. Conversion quality is improving.
+  </div>
+
+  <!-- Weekly series breakdown -->
+  <div class="card">
+    <h3>Series Breakdown &mdash; Week of Apr 6&ndash;12</h3>
+    <p class="card-subtitle">Sorted by booking rate. This was the most recent complete week.</p>
+    <table>
+      <thead>
+        <tr>
+          <th>Series</th>
+          <th class="text-right">Prospects</th>
+          <th class="text-right">Positive</th>
+          <th class="text-right">Pos. Rate</th>
+          <th class="text-right">Meetings</th>
+          <th class="text-right">Booking Rate</th>
+          <th style="width:100px;">Share of Meetings</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="background: rgba(234,179,8,0.06);">
+          <td><strong>Series 13</strong></td>
+          <td class="text-right">1,190</td><td class="text-right">16</td><td class="text-right" style="color:var(--green);">1.34%</td>
+          <td class="text-right"><strong>8</strong></td><td class="text-right" style="color:var(--green);">0.67%</td>
+          <td><div class="bar bar-amber" style="width:33%"></div></td>
+        </tr>
+        <tr>
+          <td><strong>Series 6</strong></td>
+          <td class="text-right">10,714</td><td class="text-right">16</td><td class="text-right">0.15%</td>
+          <td class="text-right"><strong>9</strong></td><td class="text-right">0.08%</td>
+          <td><div class="bar bar-blue" style="width:38%"></div></td>
+        </tr>
+        <tr>
+          <td>Series 11</td>
+          <td class="text-right">5,067</td><td class="text-right">6</td><td class="text-right">0.12%</td>
+          <td class="text-right"><strong>3</strong></td><td class="text-right">0.06%</td>
+          <td><div class="bar bar-blue" style="width:13%"></div></td>
+        </tr>
+        <tr>
+          <td>Series 10</td>
+          <td class="text-right">6,838</td><td class="text-right">7</td><td class="text-right">0.10%</td>
+          <td class="text-right"><strong>2</strong></td><td class="text-right">0.03%</td>
+          <td><div class="bar bar-blue" style="width:8%"></div></td>
+        </tr>
+        <tr>
+          <td>Series 51</td>
+          <td class="text-right">2,545</td><td class="text-right">3</td><td class="text-right">0.12%</td>
+          <td class="text-right"><strong>1</strong></td><td class="text-right">0.04%</td>
+          <td><div class="bar bar-blue" style="width:4%"></div></td>
+        </tr>
+        <tr style="color: var(--text-muted);">
+          <td>Series 5</td>
+          <td class="text-right">7,979</td><td class="text-right">2</td><td class="text-right">0.03%</td>
+          <td class="text-right"><strong>1</strong></td><td class="text-right">0.01%</td>
+          <td><div class="bar bar-blue" style="width:4%"></div></td>
+        </tr>
+        <tr style="color: var(--text-muted);">
+          <td>Series 52</td>
+          <td class="text-right">4,294</td><td class="text-right">1</td><td class="text-right">0.02%</td>
+          <td class="text-right"><strong>0</strong></td><td class="text-right">0.00%</td>
+          <td></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout callout-amber">
+    <strong>Series 13 produced 33% of meetings on 3% of volume.</strong> Its booking rate (0.67%) is 8x the next best series. Series 5 and 52 combined sent 12,273 prospects for 1 meeting total &mdash; effectively dead weight.
+  </div>
+</div>
+
+<!-- ==================== SERIES TAB ==================== -->
+<div id="series" class="tab-content">
+
+  <h3 style="margin-bottom:16px;">Series Performance &mdash; Current Week (Apr 13&ndash;16)</h3>
+  <p style="color:var(--text-muted); font-size:14px; margin-bottom:20px;">Ranked by total meetings booked. Series 13 has stopped sending new prospects but is still converting residual leads.</p>
+
+  <div class="series-grid">
+    <div class="series-card">
+      <div class="series-header">
+        <span class="series-name">Series 6</span>
+        <span class="series-rank rank-1">#1 &mdash; 12 meetings</span>
+      </div>
+      <div class="series-stat"><span class="stat-label">Prospects</span><span>14,194</span></div>
+      <div class="series-stat"><span class="stat-label">Positive replies</span><span>46</span></div>
+      <div class="series-stat"><span class="stat-label">Positive rate</span><span>0.32%</span></div>
+      <div class="series-stat"><span class="stat-label">Meetings</span><span><strong>12</strong></span></div>
+      <div class="series-stat"><span class="stat-label">Booking rate</span><span style="color:var(--green);">0.08%</span></div>
+    </div>
+
+    <div class="series-card">
+      <div class="series-header">
+        <span class="series-name">Series 10</span>
+        <span class="series-rank rank-2">#2 &mdash; 7 meetings</span>
+      </div>
+      <div class="series-stat"><span class="stat-label">Prospects</span><span>13,257</span></div>
+      <div class="series-stat"><span class="stat-label">Positive replies</span><span>15</span></div>
+      <div class="series-stat"><span class="stat-label">Positive rate</span><span>0.11%</span></div>
+      <div class="series-stat"><span class="stat-label">Meetings</span><span><strong>7</strong></span></div>
+      <div class="series-stat"><span class="stat-label">Booking rate</span><span>0.05%</span></div>
+    </div>
+
+    <div class="series-card">
+      <div class="series-header">
+        <span class="series-name">Series 11</span>
+        <span class="series-rank rank-3">#3 &mdash; 5 meetings</span>
+      </div>
+      <div class="series-stat"><span class="stat-label">Prospects</span><span>11,576</span></div>
+      <div class="series-stat"><span class="stat-label">Positive replies</span><span>7</span></div>
+      <div class="series-stat"><span class="stat-label">Positive rate</span><span>0.06%</span></div>
+      <div class="series-stat"><span class="stat-label">Meetings</span><span><strong>5</strong></span></div>
+      <div class="series-stat"><span class="stat-label">Booking rate</span><span>0.04%</span></div>
+    </div>
+
+    <div class="series-card">
+      <div class="series-header">
+        <span class="series-name">Series 5</span>
+        <span class="series-rank rank-other">#4 &mdash; 3 meetings</span>
+      </div>
+      <div class="series-stat"><span class="stat-label">Prospects</span><span>4,680</span></div>
+      <div class="series-stat"><span class="stat-label">Positive replies</span><span>0</span></div>
+      <div class="series-stat"><span class="stat-label">Positive rate</span><span>0.00%</span></div>
+      <div class="series-stat"><span class="stat-label">Meetings</span><span><strong>3</strong></span></div>
+      <div class="series-stat"><span class="stat-label">Booking rate</span><span>0.06%</span></div>
+    </div>
+
+    <div class="series-card">
+      <div class="series-header">
+        <span class="series-name">Series 13</span>
+        <span class="series-rank rank-other">Residual &mdash; 3 meetings</span>
+      </div>
+      <div class="series-stat"><span class="stat-label">Prospects</span><span style="color:var(--red);">0 (stopped)</span></div>
+      <div class="series-stat"><span class="stat-label">Positive replies</span><span>1</span></div>
+      <div class="series-stat"><span class="stat-label">Meetings</span><span><strong>3</strong></span></div>
+      <div class="series-stat"><span class="stat-label">Note</span><span style="color:var(--amber); font-size:13px;">Residual from prior sends</span></div>
+    </div>
+
+    <div class="series-card">
+      <div class="series-header">
+        <span class="series-name">Untagged</span>
+        <span class="series-rank rank-other">3 meetings</span>
+      </div>
+      <div class="series-stat"><span class="stat-label">Prospects</span><span>876</span></div>
+      <div class="series-stat"><span class="stat-label">Positive replies</span><span>0</span></div>
+      <div class="series-stat"><span class="stat-label">Meetings</span><span><strong>3</strong></span></div>
+      <div class="series-stat"><span class="stat-label">Booking rate</span><span style="color:var(--green);">0.34%</span></div>
+    </div>
+
+    <div class="series-card" style="opacity:0.5;">
+      <div class="series-header">
+        <span class="series-name">Series 14</span>
+        <span class="series-rank rank-other">0 meetings</span>
+      </div>
+      <div class="series-stat"><span class="stat-label">Prospects</span><span>1,984</span></div>
+      <div class="series-stat"><span class="stat-label">Positive replies</span><span>0</span></div>
+      <div class="series-stat"><span class="stat-label">Meetings</span><span>0</span></div>
+      <div class="series-stat"><span class="stat-label">Booking rate</span><span>0.00%</span></div>
+    </div>
+
+    <div class="series-card" style="opacity:0.5;">
+      <div class="series-header">
+        <span class="series-name">Series 51 &amp; 52</span>
+        <span class="series-rank rank-other">0 meetings</span>
+      </div>
+      <div class="series-stat"><span class="stat-label">Prospects</span><span>2,002</span></div>
+      <div class="series-stat"><span class="stat-label">Positive replies</span><span>1</span></div>
+      <div class="series-stat"><span class="stat-label">Meetings</span><span>0</span></div>
+      <div class="series-stat"><span class="stat-label">Booking rate</span><span style="color:var(--red);">0.00%</span></div>
+    </div>
+  </div>
+
+  <div class="callout callout-red">
+    <strong>Series 13 stopped sending.</strong> It was the highest-converting series by far (0.67% booking rate last week). The 3 meetings this week are residual &mdash; these will dry up within days. Restarting or scaling Series 13 is the single highest-leverage action available.
+  </div>
+
+  <div class="callout callout-amber">
+    <strong>Untagged leads are converting well</strong> (3 meetings on 876 prospects = 0.34%). Worth investigating whether these are mis-tagged Series 13 leads or a separate high-quality source.
+  </div>
+</div>
+
+<!-- ==================== PACING TAB ==================== -->
+<div id="pacing" class="tab-content">
+
+  <div class="card">
+    <h3>This Week: Apr 13&ndash;19</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Day</th>
+          <th class="text-right">Prospects</th>
+          <th class="text-right">Positive</th>
+          <th class="text-right">Meetings</th>
+          <th class="text-right">Cumulative</th>
+          <th style="width:200px;">Progress to 30</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Mon Apr 13</td>
+          <td class="text-right">11,550</td><td class="text-right">17</td>
+          <td class="text-right"><strong>9</strong></td>
+          <td class="text-right">9</td>
+          <td><div class="bar bar-accent" style="width:30%"></div></td>
+        </tr>
+        <tr>
+          <td>Tue Apr 14</td>
+          <td class="text-right">8,810</td><td class="text-right">14</td>
+          <td class="text-right"><strong>7</strong></td>
+          <td class="text-right">16</td>
+          <td><div class="bar bar-accent" style="width:53%"></div></td>
+        </tr>
+        <tr>
+          <td>Wed Apr 15</td>
+          <td class="text-right">12,667</td><td class="text-right">21</td>
+          <td class="text-right"><strong>11</strong></td>
+          <td class="text-right">27</td>
+          <td><div class="bar bar-accent" style="width:90%"></div></td>
+        </tr>
+        <tr>
+          <td>Thu Apr 16</td>
+          <td class="text-right">9,634</td><td class="text-right">17</td>
+          <td class="text-right"><strong>7</strong></td>
+          <td class="text-right" style="color:var(--green); font-weight:700;">34</td>
+          <td><div class="bar bar-green" style="width:100%"></div></td>
+        </tr>
+        <tr style="color: var(--text-muted);">
+          <td>Fri Apr 17</td>
+          <td class="text-right">&mdash;</td><td class="text-right">&mdash;</td>
+          <td class="text-right">&mdash;</td>
+          <td class="text-right"></td>
+          <td></td>
+        </tr>
+        <tr style="color: var(--text-muted);">
+          <td>Sat&ndash;Sun</td>
+          <td class="text-right">0</td><td class="text-right">&mdash;</td>
+          <td class="text-right">0</td>
+          <td class="text-right"></td>
+          <td></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="kpi-row">
+    <div class="kpi">
+      <div class="kpi-label">Booked so far</div>
+      <div class="kpi-value" style="color:var(--green);">34</div>
+      <div class="kpi-change up">Already past 30 goal</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Projected end of week</div>
+      <div class="kpi-value">34&ndash;43</div>
+      <div class="kpi-change neutral">Linear: 42 &middot; Conservative: 34 &middot; Best-day: 43</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Daily avg this week</div>
+      <div class="kpi-value">8.5</div>
+      <div class="kpi-change up">vs 4.8/day last 3 weeks</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Pace vs goal</div>
+      <div class="kpi-value" style="color:var(--green);">113%</div>
+      <div class="kpi-change up">+4 meetings buffer</div>
+    </div>
+  </div>
+
+  <div class="callout callout-green">
+    <strong>Goal hit.</strong> 34 meetings through Thursday already clears the 30/week target. Friday adds upside. This is the first week at goal pace.
+  </div>
+
+  <div class="callout callout-amber">
+    <strong>Biggest risk to sustaining this:</strong> Series 13 has stopped sending. The 3 residual meetings it contributed this week will go to 0 next week. Without restarting it, next week likely regresses to ~24&ndash;28 range (the non-Series 13 run rate). The improvement in positive reply rates across other series (0.11% &rarr; 0.16%) is real and helps, but may not be enough alone.
+  </div>
+</div>
+
+<!-- ==================== EXPERIMENTS TAB ==================== -->
+<div id="experiments" class="tab-content">
+
+  <div class="experiment">
+    <div class="exp-header">
+      <span class="exp-title">EXP-01 &mdash; Series 13 Sub-Series C Scale-Up</span>
+      <span class="exp-status status-not-started">Not Yet Started</span>
+    </div>
+    <p><strong>Hypothesis:</strong> Series 13 sub_series C converts at ~10x other series (0.67% booking rate on 1,190 prospects). Scaling to 4,000&ndash;6,000/week should add 10+ meetings even with 30&ndash;50% conversion decay.</p>
+    <p><strong>Success metric:</strong> &ge;15 additional meetings/week while keeping booking rate &ge;0.30%.</p>
+    <p><strong>Status:</strong> Surfaced Apr 16. Pending confirmation to proceed. Series 13 is currently not sending &mdash; needs to be restarted before this experiment can begin.</p>
+  </div>
+
+  <div class="experiment">
+    <div class="exp-header">
+      <span class="exp-title">EXP-00 &mdash; PostHog Tracking Gap</span>
+      <span class="exp-status status-issue">Data Issue</span>
+    </div>
+    <p><strong>Problem:</strong> Audit view rate, CTA click rate, unique audit visitors, and Amazon clicks all read 0 across all of April.</p>
+    <p><strong>Impact:</strong> Cannot measure mid-funnel engagement (prospect views the audit page &rarr; clicks CTA). Flying blind on content quality.</p>
+    <p><strong>Likely cause:</strong> Either the tracking pixel isn't firing, or the audit_id &rarr; campaign join is broken.</p>
+    <p><strong>Owner:</strong> TBD &mdash; needs engineering investigation.</p>
+  </div>
+
+  <div class="callout callout-blue">
+    <strong>Next experiment to consider:</strong> Pause Series 5 and 52 (combined 12K+ prospects/week, &lt;1 meeting) and redirect that volume to Series 6 or a restarted Series 13. Low risk, immediate impact.
+  </div>
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+  MerchantBots Outbound Dashboard &middot; Generated by Claude Code &middot; Say "update dashboard" to refresh with latest data
+</div>
+
+<script>
+function showTab(tabId) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+  document.getElementById(tabId).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+
+</body>
+</html>
