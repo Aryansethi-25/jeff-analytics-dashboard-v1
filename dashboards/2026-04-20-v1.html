@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MerchantBots Outbound Dashboard</title>
+<style>
+:root {
+  --bg: #0f1117;
+  --card: #1a1d27;
+  --card-border: #2a2d3a;
+  --text: #e4e4e7;
+  --text-muted: #8b8d97;
+  --accent: #6366f1;
+  --green: #22c55e;
+  --green-bg: rgba(34,197,94,0.12);
+  --red: #ef4444;
+  --red-bg: rgba(239,68,68,0.12);
+  --amber: #f59e0b;
+  --amber-bg: rgba(245,158,11,0.12);
+  --blue: #3b82f6;
+  --teal: #2dd4bf;
+  --purple: #a78bfa;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+  padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* Header */
+.header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:32px; flex-wrap:wrap; gap:16px; }
+.header h1 { font-size:24px; font-weight:700; }
+.header .subtitle { color:var(--text-muted); font-size:14px; margin-top:4px; }
+.last-updated { background:var(--card); border:1px solid var(--card-border); border-radius:8px; padding:8px 16px; font-size:13px; color:var(--text-muted); white-space:nowrap; }
+
+/* Goal Banner */
+.goal-banner { background:var(--card); border:1px solid var(--card-border); border-radius:12px; padding:24px; margin-bottom:24px; display:grid; grid-template-columns:1fr 1fr; gap:24px; }
+.goal-item h3 { font-size:14px; color:var(--text-muted); margin-bottom:8px; }
+.goal-value { font-size:32px; font-weight:700; }
+.goal-value span { font-size:16px; color:var(--text-muted); font-weight:400; }
+.progress-bar { height:8px; background:#2a2d3a; border-radius:4px; margin:10px 0 6px; overflow:hidden; }
+.progress-fill { height:100%; border-radius:4px; transition:width 0.5s; }
+.badge { display:inline-block; padding:2px 10px; border-radius:6px; font-size:12px; font-weight:600; }
+.badge-red { background:var(--red-bg); color:var(--red); }
+.badge-green { background:var(--green-bg); color:var(--green); }
+.badge-amber { background:var(--amber-bg); color:var(--amber); }
+
+/* Tabs */
+.tab-bar { display:flex; gap:4px; margin-bottom:24px; background:var(--card); border-radius:10px; padding:4px; border:1px solid var(--card-border); }
+.tab-btn { flex:1; padding:10px 16px; border:none; background:transparent; color:var(--text-muted); font-size:14px; font-weight:500; cursor:pointer; border-radius:8px; transition:all 0.2s; }
+.tab-btn.active { background:var(--accent); color:#fff; }
+.tab-content { display:none; }
+.tab-content.active { display:block; }
+
+/* Cards */
+.card { background:var(--card); border:1px solid var(--card-border); border-radius:12px; padding:20px; margin-bottom:20px; }
+.card h2 { font-size:16px; font-weight:600; margin-bottom:16px; }
+.card h3 { font-size:14px; font-weight:600; margin-bottom:12px; color:var(--text-muted); }
+
+/* KPI Row */
+.kpi-row { display:grid; grid-template-columns:repeat(5,1fr); gap:12px; margin-bottom:20px; }
+.kpi { background:var(--bg); border:1px solid var(--card-border); border-radius:10px; padding:16px; }
+.kpi-label { font-size:12px; color:var(--text-muted); margin-bottom:4px; }
+.kpi-value { font-size:24px; font-weight:700; }
+.kpi-compare { font-size:12px; color:var(--text-muted); margin-top:4px; }
+.kpi-delta { font-weight:600; }
+.kpi-delta.up { color:var(--green); }
+.kpi-delta.down { color:var(--red); }
+
+/* Tables */
+table { width:100%; border-collapse:collapse; font-size:13px; }
+th { text-align:left; padding:10px 12px; border-bottom:2px solid var(--card-border); color:var(--text-muted); font-weight:500; font-size:12px; text-transform:uppercase; letter-spacing:0.5px; }
+td { padding:8px 12px; border-bottom:1px solid var(--card-border); }
+th.r, td.r { text-align:right; }
+tr.weekend td { color:var(--text-muted); opacity:0.5; }
+tr:hover td { background:rgba(99,102,241,0.04); }
+
+/* Inline bar */
+.inline-bar { display:inline-block; height:6px; border-radius:3px; background:var(--accent); vertical-align:middle; margin-left:6px; }
+
+/* Funnel bar chart */
+.funnel-bars { display:flex; align-items:flex-end; gap:24px; height:180px; padding:20px 0; }
+.funnel-bar-item { flex:1; display:flex; flex-direction:column; align-items:center; gap:6px; }
+.funnel-bar-rect { width:100%; border-radius:6px 6px 0 0; transition:height 0.5s; min-height:4px; }
+.funnel-bar-label { font-size:12px; color:var(--text-muted); text-align:center; }
+.funnel-bar-value { font-size:14px; font-weight:600; }
+.funnel-bar-rate { font-size:11px; color:var(--text-muted); }
+
+/* Stacked bars */
+.stacked-bar { display:flex; height:20px; border-radius:4px; overflow:hidden; width:200px; }
+.stacked-seg { height:100%; display:flex; align-items:center; justify-content:center; font-size:9px; color:rgba(255,255,255,0.8); }
+
+/* Toggle group */
+.toggle-group { display:flex; gap:4px; margin-bottom:16px; flex-wrap:wrap; }
+.toggle-btn { padding:6px 14px; border:1px solid var(--card-border); background:var(--card); color:var(--text-muted); font-size:12px; cursor:pointer; border-radius:6px; transition:all 0.2s; }
+.toggle-btn.active { background:var(--accent); color:#fff; border-color:var(--accent); }
+
+/* Funnel diagnostic */
+.funnel-diag { display:flex; flex-direction:column; align-items:center; gap:0; padding:20px; }
+.funnel-box { width:380px; padding:16px 20px; border-radius:10px; text-align:center; border:1px solid rgba(255,255,255,0.1); }
+.funnel-box .step-name { font-size:13px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px; }
+.funnel-box .step-value { font-size:22px; font-weight:700; }
+.funnel-box .step-compare { font-size:12px; margin-top:2px; }
+.funnel-box .step-status { font-size:11px; font-weight:600; margin-top:4px; }
+.funnel-arrow { font-size:24px; color:var(--text-muted); line-height:1; padding:4px 0; }
+.funnel-green { background:rgba(34,197,94,0.15); border-color:var(--green) !important; }
+.funnel-amber { background:rgba(245,158,11,0.15); border-color:var(--amber) !important; }
+.funnel-red { background:rgba(239,68,68,0.15); border-color:var(--red) !important; }
+
+/* SVG chart */
+.chart-container { position:relative; overflow-x:auto; }
+.chart-container svg { display:block; }
+.chart-container text { font-family:inherit; }
+
+/* Client cards */
+.client-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:20px; }
+.client-card { background:var(--bg); border:1px solid var(--card-border); border-radius:10px; padding:16px; }
+.client-card h4 { font-size:14px; margin-bottom:8px; }
+.client-card .stat { font-size:12px; color:var(--text-muted); }
+
+/* Series trend placeholder */
+.placeholder-msg { text-align:center; padding:40px 20px; color:var(--text-muted); font-style:italic; }
+
+/* Footer */
+.footer { text-align:center; color:var(--text-muted); font-size:12px; padding:32px 0 16px; border-top:1px solid var(--card-border); margin-top:32px; }
+
+/* Legend */
+.legend { display:flex; gap:16px; margin:12px 0; font-size:12px; }
+.legend-item { display:flex; align-items:center; gap:6px; }
+.legend-dot { width:12px; height:12px; border-radius:3px; }
+
+@media (max-width:900px) {
+  .kpi-row { grid-template-columns:repeat(2,1fr); }
+  .goal-banner { grid-template-columns:1fr; }
+  .client-grid { grid-template-columns:repeat(2,1fr); }
+}
+@media (max-width:600px) {
+  .kpi-row { grid-template-columns:1fr; }
+  .client-grid { grid-template-columns:1fr; }
+  body { padding:12px; }
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div>
+    <h1>MerchantBots Outbound</h1>
+    <div class="subtitle">Cold email funnel &mdash; Goal: 30 meetings &amp; 100 positive replies per week</div>
+  </div>
+  <div class="last-updated">Last updated: Apr 20, 2026 &middot; Data through Apr 19</div>
+</div>
+
+<!-- GOAL PACING BANNER -->
+<div class="goal-banner">
+  <div class="goal-item">
+    <h3>Meetings This Week (Apr 14&ndash;20)</h3>
+    <div class="goal-value">4 <span>/ 30 goal</span></div>
+    <div class="progress-bar"><div class="progress-fill" style="width:13%;background:var(--red);"></div></div>
+    <span class="badge badge-red">BEHIND</span>
+  </div>
+  <div class="goal-item">
+    <h3>Positive Replies This Week</h3>
+    <div class="goal-value">5 <span>/ 100 goal</span></div>
+    <div class="progress-bar"><div class="progress-fill" style="width:5%;background:var(--red);"></div></div>
+    <span class="badge badge-red">BEHIND</span>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="switchTab('daily',this)">Daily Trend</button>
+  <button class="tab-btn" onclick="switchTab('weekly',this)">Weekly Review</button>
+  <button class="tab-btn" onclick="switchTab('jeff',this)">Jeff Clients</button>
+</div>
+
+<!-- ============ TAB 1: DAILY TREND ============ -->
+<div id="tab-daily" class="tab-content active">
+
+  <!-- Sub-A: Yesterday's Snapshot -->
+  <div class="card">
+    <h2>Yesterday's Snapshot &mdash; Apr 18, Friday</h2>
+    <p style="font-size:12px;color:var(--text-muted);margin-bottom:16px;">Compared to 15-day sending-day average (days with prospects &ge; 100)</p>
+    <div class="kpi-row">
+      <div class="kpi">
+        <div class="kpi-label">Prospects</div>
+        <div class="kpi-value">8,251</div>
+        <div class="kpi-compare">avg 6,920 <span class="kpi-delta up">+19%</span></div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Emails Sent</div>
+        <div class="kpi-value">15,987</div>
+        <div class="kpi-compare">avg 13,685 <span class="kpi-delta up">+17%</span></div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Total Replies</div>
+        <div class="kpi-value">163</div>
+        <div class="kpi-compare">avg 136 <span class="kpi-delta up">+20%</span></div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Positive Replies</div>
+        <div class="kpi-value">0</div>
+        <div class="kpi-compare">avg 0.4</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Meetings</div>
+        <div class="kpi-value">4</div>
+        <div class="kpi-compare">avg 0.3</div>
+      </div>
+    </div>
+
+    <!-- Funnel bar chart -->
+    <h3>Funnel</h3>
+    <div class="funnel-bars">
+      <div class="funnel-bar-item">
+        <div class="funnel-bar-value">8,251</div>
+        <div class="funnel-bar-rect" style="height:160px;background:var(--accent);"></div>
+        <div class="funnel-bar-label">Prospects</div>
+      </div>
+      <div class="funnel-bar-item">
+        <div class="funnel-bar-value">163</div>
+        <div class="funnel-bar-rate">1.98%</div>
+        <div class="funnel-bar-rect" style="height:calc(160px * 163 / 8251);background:var(--blue);min-height:6px;"></div>
+        <div class="funnel-bar-label">Replies</div>
+      </div>
+      <div class="funnel-bar-item">
+        <div class="funnel-bar-value">0</div>
+        <div class="funnel-bar-rate">0.00%</div>
+        <div class="funnel-bar-rect" style="height:4px;background:var(--green);"></div>
+        <div class="funnel-bar-label">Positive</div>
+      </div>
+      <div class="funnel-bar-item">
+        <div class="funnel-bar-value">4</div>
+        <div class="funnel-bar-rate">0.05%</div>
+        <div class="funnel-bar-rect" style="height:6px;background:var(--amber);"></div>
+        <div class="funnel-bar-label">Meetings</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sub-B: Daily Summary Table -->
+  <div class="card">
+    <h2>Daily Summary (Apr 3&ndash;19)</h2>
+    <div style="overflow-x:auto;">
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th><th>Day</th><th class="r">Prospects</th><th class="r">Emails</th><th class="r">Replies</th><th class="r">Positive</th><th class="r">Meetings</th><th class="r">Reply Rate</th><th class="r">Pos Reply Rate</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="weekend"><td>Apr 19</td><td>Sat</td><td class="r">0</td><td class="r">0</td><td class="r">7</td><td class="r">0</td><td class="r">0</td><td class="r">&ndash;</td><td class="r">&ndash;</td></tr>
+        <tr><td>Apr 18</td><td>Fri</td><td class="r">8,251</td><td class="r">15,987</td><td class="r">163</td><td class="r">0</td><td class="r">4</td><td class="r">1.98%</td><td class="r">0.00%</td></tr>
+        <tr><td>Apr 17</td><td>Thu</td><td class="r">7,601</td><td class="r">16,041</td><td class="r">137</td><td class="r">5 <span class="inline-bar" style="width:50px;"></span></td><td class="r">0</td><td class="r">1.80%</td><td class="r">0.07%</td></tr>
+        <tr><td>Apr 16</td><td>Wed</td><td class="r">8,043</td><td class="r">16,601</td><td class="r">168</td><td class="r">0</td><td class="r">0</td><td class="r">2.09%</td><td class="r">0.00%</td></tr>
+        <tr><td>Apr 15</td><td>Tue</td><td class="r">12,139</td><td class="r">16,783</td><td class="r">210</td><td class="r">0</td><td class="r">0</td><td class="r">1.73%</td><td class="r">0.00%</td></tr>
+        <tr><td>Apr 14</td><td>Mon</td><td class="r">6,205</td><td class="r">11,790</td><td class="r">140</td><td class="r">0</td><td class="r">0</td><td class="r">2.26%</td><td class="r">0.00%</td></tr>
+        <tr class="weekend"><td>Apr 13</td><td>Sun</td><td class="r">10,633</td><td class="r">14,605</td><td class="r">146</td><td class="r">0</td><td class="r">0</td><td class="r">1.37%</td><td class="r">0.00%</td></tr>
+        <tr class="weekend"><td>Apr 12</td><td>Sat</td><td class="r">0</td><td class="r">0</td><td class="r">3</td><td class="r">0</td><td class="r">0</td><td class="r">&ndash;</td><td class="r">&ndash;</td></tr>
+        <tr class="weekend"><td>Apr 11</td><td>Fri</td><td class="r">0</td><td class="r">0</td><td class="r">9</td><td class="r">0</td><td class="r">0</td><td class="r">&ndash;</td><td class="r">&ndash;</td></tr>
+        <tr><td>Apr 10</td><td>Thu</td><td class="r">1,520</td><td class="r">12,149</td><td class="r">65</td><td class="r">0</td><td class="r">0</td><td class="r">4.28%</td><td class="r">0.00%</td></tr>
+        <tr><td>Apr 9</td><td>Wed</td><td class="r">5,429</td><td class="r">13,372</td><td class="r">169</td><td class="r">0</td><td class="r">0</td><td class="r">3.11%</td><td class="r">0.00%</td></tr>
+        <tr><td>Apr 8</td><td>Tue</td><td class="r">11,367</td><td class="r">23,455</td><td class="r">205</td><td class="r">0</td><td class="r">0</td><td class="r">1.80%</td><td class="r">0.00%</td></tr>
+        <tr><td>Apr 7</td><td>Mon</td><td class="r">5,078</td><td class="r">11,890</td><td class="r">127</td><td class="r">0</td><td class="r">0</td><td class="r">2.50%</td><td class="r">0.00%</td></tr>
+        <tr class="weekend"><td>Apr 6</td><td>Sun</td><td class="r">5,271</td><td class="r">11,040</td><td class="r">123</td><td class="r">0</td><td class="r">0</td><td class="r">2.33%</td><td class="r">0.00%</td></tr>
+        <tr class="weekend"><td>Apr 5</td><td>Sat</td><td class="r">0</td><td class="r">0</td><td class="r">6</td><td class="r">0</td><td class="r">0</td><td class="r">&ndash;</td><td class="r">&ndash;</td></tr>
+        <tr class="weekend"><td>Apr 4</td><td>Fri</td><td class="r">0</td><td class="r">2</td><td class="r">6</td><td class="r">0</td><td class="r">0</td><td class="r">&ndash;</td><td class="r">&ndash;</td></tr>
+        <tr><td>Apr 3</td><td>Thu</td><td class="r">2,498</td><td class="r">6,166</td><td class="r">77</td><td class="r">0</td><td class="r">0</td><td class="r">3.08%</td><td class="r">0.00%</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <!-- Sub-C: Sequence Step Breakdown -->
+  <div class="card">
+    <h2>Sequence Step Breakdown</h2>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:var(--purple);"></div> Email 1</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--blue);"></div> Email 2</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--teal);"></div> Email 3</div>
+    </div>
+    <div style="overflow-x:auto;">
+    <table>
+      <thead>
+        <tr><th>Date</th><th class="r">E1</th><th class="r">E2</th><th class="r">E3</th><th>Distribution</th><th class="r">Pos</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Apr 18</td><td class="r">8,251</td><td class="r">5,541</td><td class="r">2,188</td><td><div class="stacked-bar"><div class="stacked-seg" style="width:52%;background:var(--purple);">52%</div><div class="stacked-seg" style="width:35%;background:var(--blue);">35%</div><div class="stacked-seg" style="width:14%;background:var(--teal);">14%</div></div></td><td class="r">0</td></tr>
+        <tr><td>Apr 17</td><td class="r">7,602</td><td class="r">6,957</td><td class="r">1,470</td><td><div class="stacked-bar"><div class="stacked-seg" style="width:47%;background:var(--purple);">47%</div><div class="stacked-seg" style="width:43%;background:var(--blue);">43%</div><div class="stacked-seg" style="width:9%;background:var(--teal);">9%</div></div></td><td class="r" style="color:var(--green);">5</td></tr>
+        <tr><td>Apr 16</td><td class="r">8,043</td><td class="r">7,619</td><td class="r">912</td><td><div class="stacked-bar"><div class="stacked-seg" style="width:49%;background:var(--purple);">49%</div><div class="stacked-seg" style="width:46%;background:var(--blue);">46%</div><div class="stacked-seg" style="width:6%;background:var(--teal);">6%</div></div></td><td class="r">0</td></tr>
+        <tr><td>Apr 15</td><td class="r">12,139</td><td class="r">4,258</td><td class="r">364</td><td><div class="stacked-bar"><div class="stacked-seg" style="width:72%;background:var(--purple);">72%</div><div class="stacked-seg" style="width:25%;background:var(--blue);">25%</div><div class="stacked-seg" style="width:2%;background:var(--teal);">2%</div></div></td><td class="r">0</td></tr>
+        <tr><td>Apr 14</td><td class="r">6,205</td><td class="r">4,909</td><td class="r">665</td><td><div class="stacked-bar"><div class="stacked-seg" style="width:53%;background:var(--purple);">53%</div><div class="stacked-seg" style="width:42%;background:var(--blue);">42%</div><div class="stacked-seg" style="width:6%;background:var(--teal);">6%</div></div></td><td class="r">0</td></tr>
+        <tr><td>Apr 13</td><td class="r">10,633</td><td class="r">2,174</td><td class="r">1,793</td><td><div class="stacked-bar"><div class="stacked-seg" style="width:73%;background:var(--purple);">73%</div><div class="stacked-seg" style="width:15%;background:var(--blue);">15%</div><div class="stacked-seg" style="width:12%;background:var(--teal);">12%</div></div></td><td class="r">0</td></tr>
+        <tr><td>Apr 10</td><td class="r">1,520</td><td class="r">7,667</td><td class="r">2,956</td><td><div class="stacked-bar"><div class="stacked-seg" style="width:13%;background:var(--purple);">13%</div><div class="stacked-seg" style="width:63%;background:var(--blue);">63%</div><div class="stacked-seg" style="width:24%;background:var(--teal);">24%</div></div></td><td class="r">0</td></tr>
+        <tr><td>Apr 9</td><td class="r">5,429</td><td class="r">6,676</td><td class="r">1,250</td><td><div class="stacked-bar"><div class="stacked-seg" style="width:41%;background:var(--purple);">41%</div><div class="stacked-seg" style="width:50%;background:var(--blue);">50%</div><div class="stacked-seg" style="width:9%;background:var(--teal);">9%</div></div></td><td class="r">0</td></tr>
+        <tr><td>Apr 8</td><td class="r">11,367</td><td class="r">9,208</td><td class="r">2,869</td><td><div class="stacked-bar"><div class="stacked-seg" style="width:49%;background:var(--purple);">49%</div><div class="stacked-seg" style="width:39%;background:var(--blue);">39%</div><div class="stacked-seg" style="width:12%;background:var(--teal);">12%</div></div></td><td class="r">0</td></tr>
+        <tr><td>Apr 7</td><td class="r">5,078</td><td class="r">4,938</td><td class="r">1,865</td><td><div class="stacked-bar"><div class="stacked-seg" style="width:43%;background:var(--purple);">43%</div><div class="stacked-seg" style="width:42%;background:var(--blue);">42%</div><div class="stacked-seg" style="width:16%;background:var(--teal);">16%</div></div></td><td class="r">0</td></tr>
+        <tr><td>Apr 6</td><td class="r">5,271</td><td class="r">3,195</td><td class="r">2,567</td><td><div class="stacked-bar"><div class="stacked-seg" style="width:48%;background:var(--purple);">48%</div><div class="stacked-seg" style="width:29%;background:var(--blue);">29%</div><div class="stacked-seg" style="width:23%;background:var(--teal);">23%</div></div></td><td class="r">0</td></tr>
+        <tr><td>Apr 3</td><td class="r">2,498</td><td class="r">3,418</td><td class="r">243</td><td><div class="stacked-bar"><div class="stacked-seg" style="width:41%;background:var(--purple);">41%</div><div class="stacked-seg" style="width:55%;background:var(--blue);">55%</div><div class="stacked-seg" style="width:4%;background:var(--teal);">4%</div></div></td><td class="r">0</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <!-- Sub-D: Deliverability Monitor -->
+  <div class="card">
+    <h2>Deliverability Monitor</h2>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:var(--purple);"></div> Email 1 Reply Rate</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--blue);"></div> Total Reply Rate</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--red);"></div> Bounce Rate</div>
+    </div>
+    <div class="chart-container" id="deliverability-chart"></div>
+  </div>
+</div>
+
+<!-- ============ TAB 2: WEEKLY REVIEW ============ -->
+<div id="tab-weekly" class="tab-content">
+
+  <!-- Sub-A: WoW Table with toggle -->
+  <div class="card">
+    <h2>Week-over-Week Performance</h2>
+    <div class="toggle-group" id="wow-toggle">
+      <button class="toggle-btn active" onclick="toggleWowMode('activity',this)">Activity Mode</button>
+      <button class="toggle-btn" onclick="toggleWowMode('cohort',this)">Cohort Mode</button>
+    </div>
+
+    <div id="wow-activity-table" style="overflow-x:auto;">
+    <table>
+      <thead><tr><th>Week</th><th class="r">Prospects</th><th class="r">Emails</th><th class="r">Replies</th><th class="r">Reply Rate</th><th class="r">Pos Replies</th><th class="r">Pos Rate</th><th class="r">Meetings</th><th class="r">Booking Rate</th><th class="r">Pos-to-Booking</th></tr></thead>
+      <tbody>
+        <tr style="background:rgba(99,102,241,0.06);"><td>Apr 14&ndash;20</td><td class="r">52,867</td><td class="r">91,807</td><td class="r">934</td><td class="r">1.77%</td><td class="r">5</td><td class="r">0.01%</td><td class="r">4</td><td class="r">0.01%</td><td class="r">80.00%</td></tr>
+        <tr><td>Apr 6&ndash;12</td><td class="r">28,665</td><td class="r">71,906</td><td class="r">665</td><td class="r">2.32%</td><td class="r">0</td><td class="r">0.00%</td><td class="r">0</td><td class="r">0.00%</td><td class="r">&ndash;</td></tr>
+        <tr><td>Mar 30&ndash;Apr 5</td><td class="r">28,633</td><td class="r">56,763</td><td class="r">807</td><td class="r">2.82%</td><td class="r">0</td><td class="r">0.00%</td><td class="r">0</td><td class="r">0.00%</td><td class="r">&ndash;</td></tr>
+        <tr><td>Mar 23&ndash;29</td><td class="r">32,014</td><td class="r">61,876</td><td class="r">993</td><td class="r">3.10%</td><td class="r">0</td><td class="r">0.00%</td><td class="r">0</td><td class="r">0.00%</td><td class="r">&ndash;</td></tr>
+        <tr><td>Mar 16&ndash;22</td><td class="r">14,498</td><td class="r">37,546</td><td class="r">521</td><td class="r">3.59%</td><td class="r">0</td><td class="r">0.00%</td><td class="r">0</td><td class="r">0.00%</td><td class="r">&ndash;</td></tr>
+        <tr><td>Mar 9&ndash;15</td><td class="r">15,248</td><td class="r">33,769</td><td class="r">504</td><td class="r">3.31%</td><td class="r">0</td><td class="r">0.00%</td><td class="r">0</td><td class="r">0.00%</td><td class="r">&ndash;</td></tr>
+        <tr><td>Mar 2&ndash;8</td><td class="r">11,223</td><td class="r">29,849</td><td class="r">543</td><td class="r">4.84%</td><td class="r">0</td><td class="r">0.00%</td><td class="r">0</td><td class="r">0.00%</td><td class="r">&ndash;</td></tr>
+      </tbody>
+    </table>
+    </div>
+
+    <div id="wow-cohort-table" style="display:none;overflow-x:auto;">
+    <table>
+      <thead><tr><th>Week (Cohort)</th><th class="r">Prospects</th><th class="r">Emails</th><th class="r">Replies</th><th class="r">Reply Rate</th><th class="r">Pos Replies</th><th class="r">Pos Rate</th><th class="r">Meetings</th><th class="r">Booking Rate</th><th class="r">Pos-to-Booking</th></tr></thead>
+      <tbody>
+        <tr style="background:rgba(99,102,241,0.06);"><td>Apr 14&ndash;20</td><td class="r">52,867</td><td class="r">84,200</td><td class="r">896</td><td class="r">1.69%</td><td class="r">4</td><td class="r">0.01%</td><td class="r">3</td><td class="r">0.01%</td><td class="r">75.00%</td></tr>
+        <tr><td>Apr 6&ndash;12</td><td class="r">28,665</td><td class="r">56,683</td><td class="r">598</td><td class="r">2.09%</td><td class="r">1</td><td class="r">0.00%</td><td class="r">1</td><td class="r">0.00%</td><td class="r">100.00%</td></tr>
+        <tr><td>Mar 30&ndash;Apr 5</td><td class="r">28,633</td><td class="r">62,446</td><td class="r">824</td><td class="r">2.88%</td><td class="r">0</td><td class="r">0.00%</td><td class="r">0</td><td class="r">0.00%</td><td class="r">&ndash;</td></tr>
+        <tr><td>Mar 23&ndash;29</td><td class="r">32,014</td><td class="r">70,646</td><td class="r">1,010</td><td class="r">3.15%</td><td class="r">0</td><td class="r">0.00%</td><td class="r">0</td><td class="r">0.00%</td><td class="r">&ndash;</td></tr>
+        <tr><td>Mar 16&ndash;22</td><td class="r">14,498</td><td class="r">31,101</td><td class="r">492</td><td class="r">3.39%</td><td class="r">0</td><td class="r">0.00%</td><td class="r">0</td><td class="r">0.00%</td><td class="r">&ndash;</td></tr>
+        <tr><td>Mar 9&ndash;15</td><td class="r">15,248</td><td class="r">38,108</td><td class="r">510</td><td class="r">3.34%</td><td class="r">0</td><td class="r">0.00%</td><td class="r">0</td><td class="r">0.00%</td><td class="r">&ndash;</td></tr>
+        <tr><td>Mar 2&ndash;8</td><td class="r">11,223</td><td class="r">28,834</td><td class="r">530</td><td class="r">4.72%</td><td class="r">0</td><td class="r">0.00%</td><td class="r">0</td><td class="r">0.00%</td><td class="r">&ndash;</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <!-- Sub-B: Funnel Diagnostic -->
+  <div class="card" id="funnel-diagnostic">
+    <h2>Funnel Diagnostic &mdash; Apr 14&ndash;20 vs 6-Week Average</h2>
+    <div class="funnel-diag">
+      <div class="funnel-box funnel-green">
+        <div class="step-name">Prospects Reached</div>
+        <div class="step-value">52,867</div>
+        <div class="step-compare">vs 21,714 avg</div>
+        <div class="step-status" style="color:var(--green);">ABOVE AVERAGE</div>
+      </div>
+      <div class="funnel-arrow">&darr;</div>
+      <div class="funnel-box funnel-red">
+        <div class="step-name">Reply Rate</div>
+        <div class="step-value">1.77%</div>
+        <div class="step-compare">vs 3.33% avg</div>
+        <div class="step-status" style="color:var(--red);">47% BELOW &mdash; RED</div>
+      </div>
+      <div class="funnel-arrow">&darr;</div>
+      <div class="funnel-box funnel-green">
+        <div class="step-name">Positive Reply Rate</div>
+        <div class="step-value">0.01%</div>
+        <div class="step-compare">vs 0.00% avg</div>
+        <div class="step-status" style="color:var(--green);">ABOVE AVERAGE</div>
+      </div>
+      <div class="funnel-arrow">&darr;</div>
+      <div class="funnel-box funnel-green">
+        <div class="step-name">Booking Rate</div>
+        <div class="step-value">0.01%</div>
+        <div class="step-compare">vs 0.00% avg</div>
+        <div class="step-status" style="color:var(--green);">ABOVE AVERAGE</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sub-C: Series Performance Table -->
+  <div class="card" id="series-perf-card">
+    <h2>Series Performance (Activity Mode)</h2>
+    <div class="toggle-group" id="series-toggle">
+      <button class="toggle-btn active" onclick="setSeriesWeeks(1,this)">Last 1 Week</button>
+      <button class="toggle-btn" onclick="setSeriesWeeks(2,this)">Last 2 Weeks</button>
+      <button class="toggle-btn" onclick="setSeriesWeeks(3,this)">Last 3 Weeks</button>
+      <button class="toggle-btn" onclick="setSeriesWeeks(4,this)">Last 4 Weeks</button>
+    </div>
+    <div style="overflow-x:auto;">
+    <table id="series-table">
+      <thead><tr><th>Series</th><th class="r">Prospects</th><th class="r">Emails</th><th class="r">Replies</th><th class="r">Reply Rate</th><th class="r">Pos Replies</th><th class="r">Pos Rate</th><th class="r">Meetings</th><th class="r">Booking Rate</th><th class="r">Pos-to-Booking</th></tr></thead>
+      <tbody id="series-tbody"></tbody>
+    </table>
+    </div>
+  </div>
+
+  <!-- Sub-D: Series Trend Lines (Cohort) -->
+  <div class="card" id="series-trends-card" style="display:none;">
+    <h2>Series Trend Lines (Cohort Mode)</h2>
+    <div class="placeholder-msg">CRM metrics are still being calibrated. Trend lines will populate as more data flows through the system.</div>
+    <div class="toggle-group" style="justify-content:center;margin-top:12px;">
+      <button class="toggle-btn" style="background:#ef4444;color:#fff;border-color:#ef4444;cursor:default;">5</button>
+      <button class="toggle-btn" style="background:#3b82f6;color:#fff;border-color:#3b82f6;cursor:default;">6</button>
+      <button class="toggle-btn" style="background:#22c55e;color:#fff;border-color:#22c55e;cursor:default;">10</button>
+      <button class="toggle-btn" style="background:#f59e0b;color:#fff;border-color:#f59e0b;cursor:default;">11</button>
+      <button class="toggle-btn" style="background:#a78bfa;color:#fff;border-color:#a78bfa;cursor:default;">51</button>
+      <button class="toggle-btn" style="background:#2dd4bf;color:#fff;border-color:#2dd4bf;cursor:default;">52</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:16px;margin-top:16px;">
+      <div style="text-align:center;padding:30px;border:1px dashed var(--card-border);border-radius:8px;">
+        <div style="color:var(--text-muted);font-size:13px;margin-bottom:4px;">Booking Rate by Series</div>
+        <div style="color:var(--text-muted);font-size:12px;">Insufficient data for trend lines</div>
+      </div>
+      <div style="text-align:center;padding:30px;border:1px dashed var(--card-border);border-radius:8px;">
+        <div style="color:var(--text-muted);font-size:13px;margin-bottom:4px;">Positive Reply Rate by Series</div>
+        <div style="color:var(--text-muted);font-size:12px;">Insufficient data for trend lines</div>
+      </div>
+      <div style="text-align:center;padding:30px;border:1px dashed var(--card-border);border-radius:8px;">
+        <div style="color:var(--text-muted);font-size:13px;margin-bottom:4px;">Pos Reply to Booking Rate by Series</div>
+        <div style="color:var(--text-muted);font-size:12px;">Insufficient data for trend lines</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ TAB 3: JEFF CLIENTS ============ -->
+<div id="tab-jeff" class="tab-content">
+
+  <!-- Sub-A: This Week at a Glance -->
+  <div class="card">
+    <h2>This Week at a Glance (Apr 14&ndash;20)</h2>
+    <div style="margin-bottom:16px;">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
+        <span style="font-size:20px;font-weight:700;">0 <span style="font-size:14px;color:var(--text-muted);font-weight:400;">/ 12 meetings</span></span>
+        <span class="badge badge-red">BEHIND</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" style="width:0%;background:var(--red);"></div></div>
+    </div>
+    <div class="client-grid">
+      <div class="client-card">
+        <h4>AMZ Ads</h4>
+        <div class="stat">Prospects: 4,363</div>
+        <div class="stat">Positive: 0</div>
+        <div class="stat" style="margin-top:8px;font-weight:600;">Meetings: 0 / 3 <span class="badge badge-red" style="margin-left:4px;">BEHIND</span></div>
+      </div>
+      <div class="client-card">
+        <h4>Riverguide</h4>
+        <div class="stat">Prospects: 2,624</div>
+        <div class="stat">Positive: 0</div>
+        <div class="stat" style="margin-top:8px;font-weight:600;">Meetings: 0 / 3 <span class="badge badge-red" style="margin-left:4px;">BEHIND</span></div>
+      </div>
+      <div class="client-card">
+        <h4>Accelo Brand</h4>
+        <div class="stat">Prospects: 2,515</div>
+        <div class="stat">Positive: 0</div>
+        <div class="stat" style="margin-top:8px;font-weight:600;">Meetings: 0 / 3 <span class="badge badge-red" style="margin-left:4px;">BEHIND</span></div>
+      </div>
+      <div class="client-card">
+        <h4>The Alfi</h4>
+        <div class="stat">Prospects: 0</div>
+        <div class="stat">Positive: 0</div>
+        <div class="stat" style="margin-top:8px;font-weight:600;">Meetings: 0 / 3 <span class="badge badge-red" style="margin-left:4px;">BEHIND</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sub-B: Combined Jeff Performance -->
+  <div class="card">
+    <h2>Combined Jeff Performance (Last 4 Weeks)</h2>
+    <div style="overflow-x:auto;">
+    <table>
+      <thead><tr><th>Week</th><th class="r">Prospects</th><th class="r">Emails</th><th class="r">Replies</th><th class="r">Reply Rate</th><th class="r">Pos Replies</th><th class="r">Pos Rate</th><th class="r">Meetings</th><th class="r">Booking Rate</th><th class="r">Pos-to-Booking</th></tr></thead>
+      <tbody>
+        <tr style="background:rgba(99,102,241,0.06);"><td>Apr 14&ndash;20</td><td class="r">13,663</td><td class="r">31,455</td><td class="r">438</td><td class="r">3.21%</td><td class="r">0</td><td class="r">0.00%</td><td class="r">0</td><td class="r">0.00%</td><td class="r">&ndash;</td></tr>
+        <tr><td>Apr 6&ndash;12</td><td class="r">10,019</td><td class="r">26,411</td><td class="r">474</td><td class="r">4.73%</td><td class="r">0</td><td class="r">0.00%</td><td class="r">0</td><td class="r">0.00%</td><td class="r">&ndash;</td></tr>
+        <tr><td>Mar 30&ndash;Apr 5</td><td class="r">9,930</td><td class="r">21,671</td><td class="r">364</td><td class="r">3.67%</td><td class="r">0</td><td class="r">0.00%</td><td class="r">0</td><td class="r">0.00%</td><td class="r">&ndash;</td></tr>
+        <tr><td>Mar 23&ndash;29</td><td class="r">12,998</td><td class="r">29,126</td><td class="r">451</td><td class="r">3.47%</td><td class="r">0</td><td class="r">0.00%</td><td class="r">0</td><td class="r">0.00%</td><td class="r">&ndash;</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <!-- Sub-C: Jeff Series Breakdown -->
+  <div class="card" id="jeff-series-card">
+    <h2>Jeff Series Breakdown</h2>
+    <div class="toggle-group" id="jeff-series-toggle">
+      <button class="toggle-btn active" onclick="setJeffSeriesWeeks(1,this)">Last 1 Week</button>
+      <button class="toggle-btn" onclick="setJeffSeriesWeeks(2,this)">Last 2 Weeks</button>
+      <button class="toggle-btn" onclick="setJeffSeriesWeeks(3,this)">Last 3 Weeks</button>
+      <button class="toggle-btn" onclick="setJeffSeriesWeeks(4,this)">Last 4 Weeks</button>
+    </div>
+    <div style="overflow-x:auto;">
+    <table id="jeff-series-table">
+      <thead><tr><th>Series</th><th class="r">Prospects</th><th class="r">Emails</th><th class="r">Replies</th><th class="r">Reply Rate</th><th class="r">Pos Replies</th><th class="r">Pos Rate</th><th class="r">Meetings</th><th class="r">Booking Rate</th><th class="r">Pos-to-Booking</th></tr></thead>
+      <tbody id="jeff-series-tbody"></tbody>
+    </table>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<div class="footer">MerchantBots Outbound Dashboard v1 &middot; Generated by Claude Code &middot; Say &lsquo;update dashboard&rsquo; to refresh</div>
+
+<script>
+// ====== TAB SWITCHING ======
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-content').forEach(function(t) { t.classList.remove('active'); });
+  document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+  document.getElementById('tab-' + name).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ====== ACTIVITY/COHORT TOGGLE ======
+function toggleWowMode(mode, btn) {
+  document.getElementById('wow-activity-table').style.display = mode === 'activity' ? '' : 'none';
+  document.getElementById('wow-cohort-table').style.display = mode === 'cohort' ? '' : 'none';
+  document.getElementById('funnel-diagnostic').style.display = mode === 'activity' ? '' : 'none';
+  document.getElementById('series-perf-card').style.display = mode === 'activity' ? '' : 'none';
+  document.getElementById('series-trends-card').style.display = mode === 'cohort' ? '' : 'none';
+  btn.parentElement.querySelectorAll('.toggle-btn').forEach(function(b) { b.classList.remove('active'); });
+  btn.classList.add('active');
+}
+
+// ====== SERIES PERFORMANCE DATA ======
+// week index 0=Apr13 (Apr 13-19), 1=Apr6 (Apr 6-12), 2=Mar30, 3=Mar23
+var seriesWeekData = {
+  5:  [[491,855,19,0,0],[1923,4737,40,0,0],[1749,4774,74,0,0],[3267,8045,150,0,0]],
+  6:  [[11446,27561,263,2,2],[7638,29128,240,0,0],[8840,18451,267,0,0],[10511,22212,419,0,0]],
+  10: [[21662,32923,332,1,1],[6928,13781,112,0,0],[4446,8262,71,0,0],[7123,12412,130,0,0]],
+  11: [[16936,27327,288,2,1],[5337,10533,127,0,0],[7784,14746,214,0,0],[0,0,0,0,0]],
+  14: [[330,330,9,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0]],
+  51: [[994,1361,13,0,0],[2545,5238,44,0,0],[2880,5247,80,0,0],[5746,10464,147,0,0]],
+  52: [[1008,1450,10,0,0],[4294,8489,102,0,0],[2934,5283,101,0,0],[5367,8743,147,0,0]]
+};
+
+function fmt(n) { return n.toLocaleString(); }
+function pct(n, d) { return d > 0 ? (n/d*100).toFixed(2)+'%' : '0.00%'; }
+
+function renderSeriesTable(numWeeks, data, tbodyId) {
+  var agg = {};
+  for (var s in data) {
+    agg[s] = [0,0,0,0,0];
+    for (var w = 0; w < numWeeks && w < data[s].length; w++) {
+      for (var i = 0; i < 5; i++) agg[s][i] += data[s][w][i];
+    }
+  }
+  // sort by booking rate desc, then by reply rate desc
+  var sorted = Object.keys(agg).sort(function(a,b) {
+    var bra = agg[a][0] > 0 ? agg[a][4]/agg[a][0] : 0;
+    var brb = agg[b][0] > 0 ? agg[b][4]/agg[b][0] : 0;
+    if (brb !== bra) return brb - bra;
+    var ra = agg[a][0] > 0 ? agg[a][2]/agg[a][0] : 0;
+    var rb = agg[b][0] > 0 ? agg[b][2]/agg[b][0] : 0;
+    return rb - ra;
+  });
+  var tbody = document.getElementById(tbodyId);
+  tbody.innerHTML = '';
+  sorted.forEach(function(s) {
+    var d = agg[s];
+    var rr = pct(d[2], d[0]);
+    var pr = pct(d[3], d[0]);
+    var br = pct(d[4], d[0]);
+    var ptb = d[3] > 0 ? pct(d[4], d[3]) : '&ndash;';
+    var style = d[4] === 0 ? ' style="opacity:0.5;"' : '';
+    var label = s === 'untagged' ? 'Untagged' : 'Series '+s;
+    tbody.innerHTML += '<tr'+style+'><td>'+label+'</td><td class="r">'+fmt(d[0])+'</td><td class="r">'+fmt(d[1])+'</td><td class="r">'+fmt(d[2])+'</td><td class="r">'+rr+'</td><td class="r">'+fmt(d[3])+'</td><td class="r">'+pr+'</td><td class="r">'+fmt(d[4])+'</td><td class="r">'+br+'</td><td class="r">'+ptb+'</td></tr>';
+  });
+}
+
+function setSeriesWeeks(n, btn) {
+  btn.parentElement.querySelectorAll('.toggle-btn').forEach(function(b){b.classList.remove('active');});
+  btn.classList.add('active');
+  renderSeriesTable(n, seriesWeekData, 'series-tbody');
+}
+
+// ====== JEFF SERIES DATA ======
+// week index 0=Apr13, 1=Apr6, 2=Mar30, 3=Mar23
+var jeffSeriesData = {
+  5:       [[5506,13817,184,0,0],[6342,16124,298,0,0],[6180,11976,219,0,0],[8345,15616,298,0,0]],
+  6:       [[4401,11280,163,0,0],[3677,10287,176,0,0],[3750,9695,145,0,0],[4653,13510,153,0,0]],
+  14:      [[3510,6112,86,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0]],
+  untagged:[[246,246,5,0,0],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0]]
+};
+
+function setJeffSeriesWeeks(n, btn) {
+  btn.parentElement.querySelectorAll('.toggle-btn').forEach(function(b){b.classList.remove('active');});
+  btn.classList.add('active');
+  renderSeriesTable(n, jeffSeriesData, 'jeff-series-tbody');
+}
+
+// ====== DELIVERABILITY SVG CHART ======
+(function() {
+  var dates = ['Apr 3','Apr 6','Apr 7','Apr 8','Apr 9','Apr 10','Apr 13','Apr 14','Apr 15','Apr 16','Apr 17','Apr 18'];
+  var e1rr = [1.88,1.86,1.83,1.44,2.28,1.38,1.22,1.74,1.57,1.59,1.41,1.65];
+  var trr  = [3.08,2.33,2.50,1.80,3.11,4.28,1.37,2.26,1.73,2.09,1.80,1.98];
+  var bounce = [0,0,0,0,0,0,0,0,0,0,0,0];
+
+  var W = 1100, H = 450;
+  var padL = 60, padR = 30, padT = 30, padB = 50;
+  var cW = W - padL - padR;
+  var cH = H - padT - padB;
+  var maxY = 5;
+  var steps = 10; // 0.5% increments = 11 grid lines (0 through 5)
+
+  function x(i) { return padL + (i / (dates.length - 1)) * cW; }
+  function y(v) { return padT + cH - (v / maxY) * cH; }
+
+  var svg = '<svg width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" style="font-family:inherit;">';
+
+  // grid lines & Y labels (0% to 5% in 0.5% increments = 11 lines)
+  for (var g = 0; g <= steps; g++) {
+    var val = g * 0.5;
+    var yp = y(val);
+    svg += '<line x1="'+padL+'" y1="'+yp+'" x2="'+(W-padR)+'" y2="'+yp+'" stroke="#2a2d3a" stroke-width="1"/>';
+    svg += '<text x="'+(padL-8)+'" y="'+(yp+4)+'" fill="#8b8d97" font-size="11" text-anchor="end">'+val.toFixed(1)+'%</text>';
+  }
+
+  // X labels
+  for (var xi = 0; xi < dates.length; xi++) {
+    svg += '<text x="'+x(xi)+'" y="'+(H-10)+'" fill="#8b8d97" font-size="11" text-anchor="middle">'+dates[xi]+'</text>';
+  }
+
+  // Total reply rate line (dashed blue)
+  var pathTRR = 'M';
+  for (var t = 0; t < trr.length; t++) {
+    pathTRR += (t>0?' L ':'')+x(t)+' '+y(trr[t]);
+  }
+  svg += '<path d="'+pathTRR+'" fill="none" stroke="#3b82f6" stroke-width="1.5" stroke-dasharray="6,4"/>';
+  for (var t = 0; t < trr.length; t++) {
+    svg += '<circle cx="'+x(t)+'" cy="'+y(trr[t])+'" r="3" fill="#3b82f6"/>';
+  }
+
+  // E1 reply rate line (solid purple, 2.5px, with value labels)
+  var pathE1 = 'M';
+  for (var e = 0; e < e1rr.length; e++) {
+    pathE1 += (e>0?' L ':'')+x(e)+' '+y(e1rr[e]);
+  }
+  svg += '<path d="'+pathE1+'" fill="none" stroke="#6366f1" stroke-width="2.5"/>';
+  for (var e = 0; e < e1rr.length; e++) {
+    svg += '<circle cx="'+x(e)+'" cy="'+y(e1rr[e])+'" r="4" fill="#6366f1"/>';
+    var labelY = y(e1rr[e]) - 10;
+    // push label down if it would overlap with total reply rate
+    if (trr[e] > e1rr[e] && Math.abs(trr[e] - e1rr[e]) < 0.6) {
+      labelY = y(e1rr[e]) + 18;
+    }
+    svg += '<text x="'+x(e)+'" y="'+labelY+'" fill="#6366f1" font-size="10" text-anchor="middle">'+e1rr[e].toFixed(2)+'%</text>';
+  }
+
+  // Bounce rate line (red, flat at 0)
+  var pathB = 'M';
+  for (var b = 0; b < bounce.length; b++) {
+    pathB += (b>0?' L ':'')+x(b)+' '+y(bounce[b]);
+  }
+  svg += '<path d="'+pathB+'" fill="none" stroke="#ef4444" stroke-width="1.5" opacity="0.5"/>';
+  for (var b = 0; b < bounce.length; b++) {
+    svg += '<circle cx="'+x(b)+'" cy="'+y(bounce[b])+'" r="3" fill="#ef4444" opacity="0.5"/>';
+  }
+
+  svg += '</svg>';
+  document.getElementById('deliverability-chart').innerHTML = svg;
+})();
+
+// ====== INIT ======
+renderSeriesTable(1, seriesWeekData, 'series-tbody');
+renderSeriesTable(1, jeffSeriesData, 'jeff-series-tbody');
+</script>
+</body>
+</html>
