@@ -1,0 +1,17 @@
+# OS noise
+.DS_Store
+
+# Credentials and runbooks — DO NOT commit to public repo
+deliverability.md
+.env
+.env.*
+
+# SQL queries contain internal client IDs and business logic
+queries/
+
+# Python scripts and build artifacts (scripts may contain DB credentials)
+*.py
+__pycache__/
+*.pyc
+.venv/
+venv/

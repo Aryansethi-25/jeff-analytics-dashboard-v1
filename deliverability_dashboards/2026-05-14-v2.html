@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Deliverability — Bounce Patterns (WoW)</title>
+<style>
+  body { background:#0f1117; color:#e5e7eb; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; margin:0; padding:24px; }
+  h1 { margin:0 0 4px; font-size:22px; }
+  .sub { color:#9ca3af; margin:0 0 24px; font-size:13px; }
+  .grid { display:grid; gap:20px; grid-template-columns:1fr; }
+  .card { background:#1a1d27; border:1px solid #2a2e3a; border-radius:8px; padding:18px; }
+  .card h2 { margin:0 0 12px; font-size:15px; color:#d1d5db; font-weight:500; }
+  .footer { margin-top:28px; color:#6b7280; font-size:12px; }
+</style>
+</head>
+<body>
+  <h1>Bounce Patterns — Week over Week</h1>
+  <p class="sub">MerchantBots cohort (clients 108917, 82914, 51431, 33748; Mr. Prime sends excluded before 2026-04-15). Cohort attribution by email_1 send week. Generated 2026-05-14.</p>
+  <div class="grid">
+    <div class="card"><h2>1 · Absolute bounce counts per week (stacked)</h2><canvas id="card1" height="120"></canvas></div>
+    <div class="card"><h2>2 · Share of bounces per week (100% stacked)</h2><canvas id="card2" height="120"></canvas></div>
+    <div class="card"><h2>3 · Bounce rate per pattern per week (% of prospects)</h2><canvas id="card3" height="120"></canvas></div>
+    <div class="card"><h2>4 · Total bounce rate per week (% of prospects)</h2><canvas id="card4" height="120"></canvas></div>
+  </div>
+  <p class="footer">Data source: Postgres direct query via pattern_abc_wow_dashboard.sql.</p>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+  const data   = {"weeks": ["2026-03-30", "2026-04-06", "2026-04-13", "2026-04-20", "2026-04-27", "2026-05-04"], "counts": {"A \u2014 Google sender block": [56, 1550, 2656, 2431, 1485, 1402], "B \u2014 Cloudmark CSI (MailReef)": [279, 214, 765, 636, 538, 411], "C \u2014 MS dead address (5.4.1)": [112, 113, 314, 322, 323, 180], "Other": [203, 182, 727, 705, 760, 316]}, "shares": {"A \u2014 Google sender block": [8.62, 75.28, 59.52, 59.38, 47.81, 60.72], "B \u2014 Cloudmark CSI (MailReef)": [42.92, 10.39, 17.14, 15.53, 17.32, 17.8], "C \u2014 MS dead address (5.4.1)": [17.23, 5.49, 7.04, 7.87, 10.4, 7.8], "Other": [31.23, 8.84, 16.29, 17.22, 24.47, 13.69]}, "rates": {"A \u2014 Google sender block": [0.34, 9.96, 5.64, 4.93, 3.34, 4.46], "B \u2014 Cloudmark CSI (MailReef)": [1.68, 1.38, 1.62, 1.29, 1.21, 1.31], "C \u2014 MS dead address (5.4.1)": [0.67, 0.73, 0.67, 0.65, 0.73, 0.57], "Other": [1.22, 1.17, 1.54, 1.43, 1.71, 1.01]}, "total_rates": [3.92, 13.24, 9.47, 8.31, 6.98, 7.35]};
+  const order  = ["A \u2014 Google sender block", "B \u2014 Cloudmark CSI (MailReef)", "C \u2014 MS dead address (5.4.1)", "Other"];
+  const colors = {"A \u2014 Google sender block": "#ef4444", "B \u2014 Cloudmark CSI (MailReef)": "#f59e0b", "C \u2014 MS dead address (5.4.1)": "#3b82f6", "Other": "#6b7280"};
+
+  const baseOpts = {
+    responsive: true,
+    plugins: { legend: { labels: { color: "#d1d5db" } } },
+    scales: {
+      x: { ticks: { color: "#9ca3af" }, grid: { color: "#2a2e3a" } },
+      y: { ticks: { color: "#9ca3af" }, grid: { color: "#2a2e3a" } }
+    }
+  };
+
+  const ds = (label, arr) => ({ label, data: arr, backgroundColor: colors[label], borderColor: colors[label] });
+
+  new Chart(document.getElementById("card1"), {
+    type: "bar",
+    data: { labels: data.weeks, datasets: order.map(p => ({ ...ds(p, data.counts[p]), stack: "s1" })) },
+    options: { ...baseOpts, scales: { ...baseOpts.scales, x: { ...baseOpts.scales.x, stacked: true }, y: { ...baseOpts.scales.y, stacked: true } } }
+  });
+
+  new Chart(document.getElementById("card2"), {
+    type: "bar",
+    data: { labels: data.weeks, datasets: order.map(p => ({ ...ds(p, data.shares[p]), stack: "s1" })) },
+    options: { ...baseOpts, scales: { ...baseOpts.scales, x: { ...baseOpts.scales.x, stacked: true }, y: { ...baseOpts.scales.y, stacked: true, max: 100 } } }
+  });
+
+  new Chart(document.getElementById("card3"), {
+    type: "line",
+    data: { labels: data.weeks, datasets: order.map(p => ({ ...ds(p, data.rates[p]), fill: false, tension: 0.2, pointRadius: 4 })) },
+    options: baseOpts
+  });
+
+  new Chart(document.getElementById("card4"), {
+    type: "line",
+    data: { labels: data.weeks, datasets: [{
+      label: "Total bounce rate",
+      data: data.total_rates,
+      borderColor: "#10b981",
+      backgroundColor: "#10b981",
+      fill: false,
+      tension: 0.2,
+      pointRadius: 4
+    }]},
+    options: baseOpts
+  });
+</script>
+</body>
+</html>

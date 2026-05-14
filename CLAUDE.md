@@ -1,5 +1,20 @@
 # Jeff Analytics — Claude Code context
 
+## Dashboards in this folder
+
+This folder serves two dashboards:
+
+1. **Analytics dashboard** (`dashboard.html`) — sales funnel, goal pacing, week-over-week, series performance. Powered by the Smartlead MCP. **This is the default.** Specs live in this file (Section: "Dashboard").
+2. **Deliverability dashboard** (`deliverability.html`) — bounce-pattern tracking (A / B / C) for EQU-328 RCA. Powered by a direct Postgres query. Specs live in [`deliverability.md`](deliverability.md).
+
+Routing rules:
+- **"update dashboard"** (default) → update the analytics dashboard using the specs below.
+- **"update deliverability dashboard"** (or any phrase containing "deliverability") → follow [`deliverability.md`](deliverability.md) instead. Do not touch `dashboard.html`.
+
+`deliverability.md`, `queries/`, and `.env*` are gitignored — they contain a DB credential and internal client IDs. Never `git add` them.
+
+---
+
 You are helping the sales lead run outbound analytics for two businesses on the Jeff platform.
 
 ## Business context
@@ -13,18 +28,38 @@ Strategic direction: phasing out external Jeff clients over time, scaling Mercha
 
 ## Client list
 
-### MerchantBots clients (primary focus)
+### MerchantBots clients — current (primary focus)
 
-| Client | ID | Role |
-|---|---|---|
-| Equal Collective | 108917 | Parent company — IS MerchantBots |
-| DTC Retail | 82914 | Originated the MerchantBots model |
-| Nexus | 51431 | Infrastructure partner — sends volume, no meetings |
-| Mr. Prime | 33748 | Infrastructure partner — sends volume, no meetings. Being phased out. |
+| Client | ID | Role | MB since |
+|---|---|---|---|
+| Equal Collective | 108917 | Parent company — IS MerchantBots | always |
+| DTC Retail | 82914 | Originated the MerchantBots model | always |
+| Nexus | 51431 | Infrastructure partner — sends volume, no meetings | 2026-03-30 |
+| Mr. Prime | 33748 | Infrastructure partner — sends volume, no meetings. Being phased out. | 2026-04-15 |
 
-**Query filter for MerchantBots:** `client_id=108917,82914,51431,33748`
+**Query filter for MerchantBots (current state):** `client_id=108917,82914,51431,33748`
 
 Infrastructure partners (Nexus, Mr. Prime) contribute to volume metrics (prospects_reached, emails_sent, replies) but naturally return 0 for outcome metrics (meetings, positive replies). No need for separate queries.
+
+### Historical client transitions
+
+For analyses that span the transition dates, attribute volume per the client's status at that time. CRM outcomes (positive replies, meetings) are agency-attributed in the source of truth and do not need rewriting.
+
+| Client | ID | Was | Became MB | Notes |
+|---|---|---|---|---|
+| Nexus | 51431 | Jeff client | 2026-03-30 (Mon) | Clean week-start cutover. For weekly windows, exclude Nexus from MB total in any week ending on or before 2026-03-29; include from week of 2026-03-30 onward. |
+| Mr. Prime | 33748 | Jeff client | 2026-04-15 (Wed) | Mid-week cutover. The Mon-Sun week of 2026-04-13 to 2026-04-19 straddles the transition: Apr 13–14 was Jeff, Apr 15–19 was MB. |
+
+**MerchantBots series:**
+
+- **Active:** 6, 10, 11
+- **Paused (historical, still in data):** 15 — launched as MB, later paused. Include for retrospective analyses, exclude from "current MB series" filters.
+
+When attributing infrastructure-partner sends to MB pre-transition (or as a sanity check), filter to series IN (6, 10, 11, 15) AND respect the transition date — Series 6 was also used by Nexus/Mr. Prime for Jeff customers before they migrated, so series alone is not sufficient.
+
+When a series transitions: append to the lists above with the date. A new series launched as a replacement (e.g. Series 21 replacing Series 10) → mark predecessor as paused rather than removing it from the data list.
+
+DTC Retail (82914) and Equal Collective (108917) have always been MerchantBots — no transition handling needed. All other clients (AMZ Ads, Riverguide, Accelo Brand, The Alfi) have always been Jeff and have not transitioned.
 
 ### Jeff clients (secondary tracking)
 
@@ -45,7 +80,7 @@ Infrastructure partners (Nexus, Mr. Prime) contribute to volume metrics (prospec
 
 ### When the client list changes
 
-The user will inform Claude when clients are added, removed, or reclassified. Update the table above and the query filters accordingly.
+The user will inform Claude when clients are added, removed, or reclassified. Update the current-state table and add a row to the historical transitions table with the exact transition date. Never overwrite history — append.
 
 ## Goals
 
@@ -180,35 +215,33 @@ Each section below defines exactly what to query and how to display it. When bui
   - Positive Replies column placed next to the stacked bar so the user can eyeball correlation between email 1 volume/mix and positive reply count
 - **Business question answered**: "Are we sending enough email 1s? On days with higher email 1 mix, do we get more positive replies?"
 
-##### Sub-section D: Deliverability Monitor
-- **Query**:
-  - Metrics: `email_1_sent,replies_email_1,bounce_rate,reply_rate`
-  - Granularity: `daily`
-  - Client IDs: `108917,82914,51431,33748`
-  - Dates: last 16 days through yesterday
-  - Date mode: `activity`
-- **Display**:
-  - Line graph trending over 16 days:
-    - Line 1: Email 1 reply rate (`replies_email_1 / email_1_sent`) — primary deliverability signal
-    - Line 2: Total reply rate — for comparison
-    - Line 3: Bounce rate — delivery failures
-  - X-axis: dates. Y-axis: percentage. Weekend days can be gaps or dotted lines.
-- **Business question answered**: "Are my emails landing in inboxes? Is deliverability improving or degrading?"
-
 #### Section 3: Weekly Review (tab, MerchantBots)
 
 ##### Sub-section A: Week-over-Week Table (toggle: activity / cohort mode)
 - **Query (activity mode)**:
-  - Metrics: `prospects_reached,total_emails_sent,total_replies,crm_positive_replies,crm_meetings_booked,reply_rate,crm_positive_reply_rate,crm_booking_rate`
+  - Metrics: `prospects_reached,total_emails_sent,total_replies,total_bounces,crm_positive_replies,crm_meetings_booked,reply_rate,bounce_rate,reply_to_crm_positive_rate,crm_positive_reply_rate,crm_booking_rate`
   - Granularity: `weekly`
   - Client IDs: `108917,82914,51431,33748`
   - Dates: last 6 complete weeks (Mon–Sun) + current partial week
+    - **Important — apply transition-date adjustments before displaying totals.** The client_id filter naively includes Nexus (51431) and Mr. Prime (33748) across the whole range, but they only became MerchantBots on 2026-03-30 (Nexus, clean Monday cutover) and 2026-04-15 (Mr. Prime, mid-week cutover). Three cases per client:
+        - **Nexus (51431):**
+          - Week ending ≤ 2026-03-29 → **exclude Nexus entirely** (pre-transition Jeff volume).
+          - Week of 2026-03-30 onward → **include Nexus** (clean Monday cutover, no partial-week math needed).
+        - **Mr. Prime (33748):**
+          - Week ending ≤ 2026-04-12 → **exclude Mr. Prime entirely** (pre-transition Jeff volume). This was the gap that caused the May 2026 dashboard build to over-count Mar 30–Apr 5 and Apr 6–12 prospects by ~12k–13k each — query Mr. Prime separately for the week and subtract from the 4-client total.
+          - Week of 2026-04-13 to 2026-04-19 (straddles transition) → **subtract only Mr. Prime's Apr 13–14 volume** (those two days were still Jeff; Apr 15–19 was MB). Pull a daily query for Mr. Prime alone over the week and subtract Apr 13–14.
+          - Week of 2026-04-20 onward → **include Mr. Prime** (fully MB).
+        - **Apply adjustments to volume metrics only**: prospects_reached, total_emails_sent, total_replies, total_bounces. CRM outcomes (crm_positive_replies, crm_meetings_booked) are agency-attributed in the source of truth and do not need rewriting.
+        - **Label adjusted weeks** in the rendered table with a small parenthetical: e.g. "(3 clients, no MrP)", "(MrP adj.)", "(Nexus joined Mar 30)", "(maturing)". The label must accurately reflect the math — do NOT label a row "no MrP" if the displayed number is the 4-client total.
+        - See the "Historical client transitions" table at the top of this doc for canonical dates.
   - Date mode: `activity`
 - **Query (cohort mode)**: same parameters but `date_mode=cohort`
 - **Display**:
   - Toggle switch at top: Activity / Cohort. Swaps the entire table data.
   - Table with most recent week at top
-  - Columns: Week, Prospects, Emails, Replies, Reply Rate, Positive Replies, Pos. Reply Rate, Meetings, Booking Rate, Pos. Reply to Booking Rate
+  - Columns: Week, Prospects, Emails, Bounce Rate, Replies, Reply Rate, Positive Replies, Pos. Reply Rate, Reply → Pos Rate, Meetings, Booking Rate, Pos. Reply to Booking Rate
+  - Bounce Rate = total_bounces / prospects_reached (from API as `bounce_rate`, or compute client-side from counts)
+  - Reply → Pos Rate = crm_positive_replies / total_replies (from API as `reply_to_crm_positive_rate`, or compute client-side from counts). Caveat: numerator is agency-attributed while denominator is campaign-attributed, so the ratio is a directional signal of reply quality, not a precise per-client conversion.
   - Pos. Reply to Booking Rate = crm_meetings_booked / crm_positive_replies (calculated in HTML, not from API)
   - Label clearly which mode is active
 - **Saturday rule**: when building on a Saturday, treat the current Mon–Fri as the most recent week (it is complete for sending purposes)
@@ -246,25 +279,6 @@ Each section below defines exactly what to query and how to display it. When bui
   - Sorted by booking rate descending
   - Fade out series with 0 meetings in the selected range
 - **Business question answered**: "Which series should I scale this week? Is the performance real or a fluke?"
-
-##### Sub-section D: Series Trend Lines (cohort mode)
-- **Query**:
-  - Metrics: `crm_positive_reply_rate,crm_booking_rate,crm_positive_replies,crm_meetings_booked`
-  - Granularity: `weekly`
-  - Client IDs: `108917,82914,51431,33748`
-  - Group by: `series`
-  - Dates: last 6 complete weeks
-  - Date mode: `cohort`
-- **Display**:
-  - 3 line charts, one for each rate:
-    1. Booking Rate by series (weekly trend)
-    2. Positive Reply Rate by series (weekly trend)
-    3. Pos. Reply to Booking Rate by series (weekly trend, calculated in HTML)
-  - Each line = one series, different color per series
-  - Toggle buttons to show/hide individual series (all visible by default, click to turn off)
-  - 6 data points per line (one per week)
-  - Pos. Reply to Booking Rate = crm_meetings_booked / crm_positive_replies per series per week
-- **Business question answered**: "How is each series trending over time? Is a series improving or degrading?"
 
 #### Section 4: Jeff Clients (tab, activity mode only)
 
@@ -320,3 +334,26 @@ Each section below defines exactly what to query and how to display it. When bui
 - Color coding: green = good/above target, red = bad/below target, amber = warning/watch
 - All numbers formatted with commas. Rates as percentages with 2 decimal places.
 - End each section with a callout highlighting the key insight or action item
+
+## Spot Checks
+
+After every "update dashboard" run, before declaring done, execute the checks below. Each check independently re-queries MCP and compares the result to what's rendered in `dashboard.html`. If any check fails, stop and fix the build — do not push a failing dashboard.
+
+Spot checks are intentionally narrow and load-bearing — they target the rows most likely to break under spec ambiguity or transition-date math. Add a new check whenever a real bug ships; remove a check only when the underlying logic is encoded in tested code (not narrative spec) and has stayed correct for at least 4 dashboard updates.
+
+### Check 1: Transition-period weekly prospects (Section 3 Sub-section A)
+
+**What it verifies:** the Week-over-Week table correctly applies the Nexus and Mr. Prime transition dates for weekly `prospects_reached`. This is the check that would have caught the May 2026 over-count of ~12k–13k prospects on the Mar 30–Apr 5 and Apr 6–12 rows.
+
+**Procedure:** for each of the four transition-period weeks, run an independent MCP query with the per-week-correct `client_id` list (per the rules in Section 3 Sub-section A), and confirm the rendered `prospects_reached` in `dashboard.html` matches the query result. Date mode: `activity`. Granularity: `weekly`.
+
+| Week | Correct `client_id` filter | Notes |
+|---|---|---|
+| 2026-03-30 to 2026-04-05 | `108917,82914,51431` | Nexus joined Mon Mar 30 (clean cutover, include). MrP not yet MB (exclude entirely). |
+| 2026-04-06 to 2026-04-12 | `108917,82914,51431` | Same as above. MrP still pre-transition. |
+| 2026-04-13 to 2026-04-19 | 4-client weekly total **minus** MrP's Apr 13–14 daily volume | Straddle week. Query weekly with `108917,82914,51431,33748`, then query daily for `33748` over that week and subtract the Apr 13 + Apr 14 prospects from the weekly total. |
+| 2026-04-20 to 2026-04-26 | `108917,82914,51431,33748` | MrP fully MB from Apr 15. All four clients included. |
+
+**Pass criterion:** rendered value matches the independently computed value exactly for all four weeks.
+
+**On failure:** the build's per-week client_id filter selection is wrong (most likely cause) — fix the build logic, rebuild, re-run the spot check. Do NOT just edit the label; the label and the number must agree.
