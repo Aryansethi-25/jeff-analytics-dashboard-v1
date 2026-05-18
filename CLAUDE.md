@@ -136,6 +136,7 @@ crm_meetings_booked   (CRM is source of truth for outcomes)
 
 ## How to work with the user
 
+- **`git pull` before any local edit.** The daily dashboard routine pushes `dashboard.html` and `dashboards/YYYY-MM-DD-vN.html` to GitHub on its own schedule, so the local clone is often behind. Pull first to avoid stale edits and merge conflicts. (This applies to local Claude Code sessions only — the cloud routine works in a fresh clone and can skip this.)
 - **Run the query first, then talk.** Don't ask permission for read-only queries. Just pull the data.
 - **Surface anomalies unprompted.** If one series is 10x others, say so even if not asked.
 - **Always contrast.** Every number is meaningless without a comparison — vs. last week, vs. other series, vs. goal.
@@ -145,8 +146,8 @@ crm_meetings_booked   (CRM is source of truth for outcomes)
 ## Dashboard
 
 ### Hosting and update workflow
-- **GitHub repo**: `Aryansethi-25/jeff-analytics-dashboard-v1` (public)
-- **Team URL**: `https://aryansethi-25.github.io/jeff-analytics-dashboard-v1/dashboard.html`
+- **GitHub repo**: `equalcollective/jeff-analytics-dashboard-v1` (public)
+- **Team URL**: `https://equalcollective.github.io/jeff-analytics-dashboard-v1/dashboard.html`
 - **Permanent file**: `dashboard.html` at the repo root — this is what the team sees. Always overwrite this file with the latest data.
 - **Archive**: `dashboards/YYYY-MM-DD-vN.html` — dated snapshot copy. Create one each time the dashboard is updated.
 
@@ -178,30 +179,23 @@ Each section below defines exactly what to query and how to display it. When bui
 
 #### Section 2: Daily Trend (tab, MerchantBots, activity mode only)
 
-##### Sub-section A: Yesterday's Snapshot
+##### Sub-section A: Daily Summary Table
 - **Query**:
-  - Metrics: `prospects_reached,total_emails_sent,total_replies,crm_positive_replies,crm_meetings_booked`
+  - Metrics: `prospects_reached,total_emails_sent,total_replies,crm_positive_replies,crm_meetings_booked,reply_rate,crm_positive_reply_rate`
   - Granularity: `daily`
   - Client IDs: `108917,82914,51431,33748`
-  - Dates: last 16 days through yesterday (for KPI cards, show yesterday's numbers compared to 15-day sending-day average)
+  - Dates: last 16 days through yesterday
   - Date mode: `activity`
-- **Display**:
-  - 5 KPI cards: Prospects Reached, Emails Sent, Total Replies, Positive Replies, Meetings Booked
-  - Each card shows yesterday's number and comparison to 15-day sending-day average
-  - Non-sending day definition: any day where prospects_reached < 100. Exclude these from the average calculation.
-  - Funnel bar chart for yesterday: Prospects → Replies (with reply rate) → Positive Replies (with % of prospects) → Meetings (with booking rate)
-
-##### Sub-section B: Daily Summary Table
-- **Query**: same as sub-section A (reuse the data)
 - **Display**:
   - 16 rows, **sorted most recent date at top**
   - Columns: Date, Day, Prospects Reached, Emails Sent, Total Replies, Positive Replies (with inline bar chart), Meetings, Reply Rate, Positive Reply Rate
   - No booking rate column
   - Inline bar chart on the Positive Replies column (scaled to max day)
   - Weekends muted
+  - Highlight yesterday's row (most recent) so it reads as the "what happened yesterday" anchor — this absorbs the role of the deleted Yesterday's Snapshot sub-section
   - Highlight any day with positive replies >2x the median
 
-##### Sub-section C: Sequence Step Breakdown
+##### Sub-section B: Sequence Step Breakdown
 - **Query**:
   - Metrics: `email_1_sent,email_2_sent,email_3_sent,crm_positive_replies`
   - Granularity: `daily`
@@ -239,9 +233,9 @@ Each section below defines exactly what to query and how to display it. When bui
 - **Display**:
   - Toggle switch at top: Activity / Cohort. Swaps the entire table data.
   - Table with most recent week at top
-  - Columns: Week, Prospects, Emails, Bounce Rate, Replies, Reply Rate, Positive Replies, Pos. Reply Rate, Reply → Pos Rate, Meetings, Booking Rate, Pos. Reply to Booking Rate
+  - Columns: Week, Prospects, Emails, Bounce Rate, Replies, Reply Rate, Positive Replies, Pos. Reply Rate, `reply_to_crm_positive_rate`, Meetings, Booking Rate, Pos. Reply to Booking Rate
   - Bounce Rate = total_bounces / prospects_reached (from API as `bounce_rate`, or compute client-side from counts)
-  - Reply → Pos Rate = crm_positive_replies / total_replies (from API as `reply_to_crm_positive_rate`, or compute client-side from counts). Caveat: numerator is agency-attributed while denominator is campaign-attributed, so the ratio is a directional signal of reply quality, not a precise per-client conversion.
+  - `reply_to_crm_positive_rate` = crm_positive_replies / total_replies (from API as `reply_to_crm_positive_rate`, or compute client-side from counts). Caveat: numerator is agency-attributed while denominator is campaign-attributed, so the ratio is a directional signal of reply quality, not a precise per-client conversion.
   - Pos. Reply to Booking Rate = crm_meetings_booked / crm_positive_replies (calculated in HTML, not from API)
   - Label clearly which mode is active
 - **Saturday rule**: when building on a Saturday, treat the current Mon–Fri as the most recent week (it is complete for sending purposes)
@@ -265,7 +259,7 @@ Each section below defines exactly what to query and how to display it. When bui
 
 ##### Sub-section C: Series Performance Table (activity mode)
 - **Query**:
-  - Metrics: `prospects_reached,total_emails_sent,total_replies,crm_positive_replies,crm_meetings_booked,reply_rate,crm_positive_reply_rate,crm_booking_rate`
+  - Metrics: `prospects_reached,total_emails_sent,total_replies,total_bounces,crm_positive_replies,crm_meetings_booked,reply_rate,bounce_rate,reply_to_crm_positive_rate,crm_positive_reply_rate,crm_booking_rate`
   - Granularity: `weekly`
   - Client IDs: `108917,82914,51431,33748`
   - Group by: `series`
@@ -274,10 +268,13 @@ Each section below defines exactly what to query and how to display it. When bui
 - **Display**:
   - 4 toggle buttons: **Last 1 week** | **Last 2 weeks** | **Last 3 weeks** | **Last 4 weeks**
   - Each button aggregates the selected number of recent weeks into one row per series
-  - Table columns: Series, Prospects, Emails, Replies, Reply Rate, Positive Replies, Pos. Reply Rate, Meetings, Booking Rate, Pos. Reply to Booking Rate
+  - Table columns: Series, Prospects, Emails, Bounce Rate, Replies, Reply Rate, Positive Replies, Pos. Reply Rate, `reply_to_crm_positive_rate`, Meetings, Booking Rate, Pos. Reply to Booking Rate
+  - Bounce Rate = total_bounces / prospects_reached (works correctly at series level — no CRM dependency)
+  - `reply_to_crm_positive_rate` = crm_positive_replies / total_replies. Will read as 0 at series level until the EQU-290 series-CRM fix ships (numerator gets dropped). Same caveat as the other CRM-dependent columns below.
   - Pos. Reply to Booking Rate = crm_meetings_booked / crm_positive_replies (calculated in HTML)
   - Sorted by booking rate descending
-  - Fade out series with 0 meetings in the selected range
+  - **All series rendered in full white** — do NOT fade out series with 0 meetings. Every series stays equally readable so the user can see zero-meeting performance side-by-side with high performers.
+  - **Use CRM metrics as specified** (`crm_positive_replies`, `crm_meetings_booked`), not SL proxies. Per EQU-290 the MCP currently drops CRM metrics when group_by=series, which will produce wrong (likely zero) values in this section — that is acceptable. The tech team is expected to restore CRM at series level; locking the spec to CRM means no spec re-flip when the fix lands.
 - **Business question answered**: "Which series should I scale this week? Is the performance real or a fluke?"
 
 #### Section 4: Jeff Clients (tab, activity mode only)
@@ -298,7 +295,7 @@ Each section below defines exactly what to query and how to display it. When bui
 
 ##### Sub-section B: Combined Jeff Performance (last 4 weeks)
 - **Query**:
-  - Metrics: `prospects_reached,total_emails_sent,total_replies,crm_positive_replies,crm_meetings_booked,reply_rate,crm_positive_reply_rate,crm_booking_rate`
+  - Metrics: `prospects_reached,total_emails_sent,total_replies,total_bounces,crm_positive_replies,crm_meetings_booked,reply_rate,bounce_rate,reply_to_crm_positive_rate,crm_positive_reply_rate,crm_booking_rate`
   - Granularity: `weekly`
   - Client IDs: `25946,25948,223329,340115`
   - Dates: last 4 complete weeks (Mon–Sun) + current partial week
@@ -306,13 +303,15 @@ Each section below defines exactly what to query and how to display it. When bui
 - **Display**:
   - All Jeff clients clubbed into one aggregate row per week (not individual client rows)
   - Most recent week at top
-  - Columns: Week, Prospects, Emails, Replies, Reply Rate, Positive Replies, Pos. Reply Rate, Meetings, Booking Rate, Pos. Reply to Booking Rate
+  - Columns: Week, Prospects, Emails, Bounce Rate, Replies, Reply Rate, Positive Replies, Pos. Reply Rate, `reply_to_crm_positive_rate`, Meetings, Booking Rate, Pos. Reply to Booking Rate
+  - Bounce Rate = total_bounces / prospects_reached (from API as `bounce_rate`, or compute client-side from counts)
+  - `reply_to_crm_positive_rate` = crm_positive_replies / total_replies (from API as `reply_to_crm_positive_rate`, or compute client-side from counts). Same agency-vs-campaign attribution caveat as in Section 3A — directional signal of reply quality, not precise per-client conversion.
   - Pos. Reply to Booking Rate = crm_meetings_booked / crm_positive_replies (calculated in HTML)
 - **Business question answered**: "How is the Jeff book of business performing overall week over week?"
 
 ##### Sub-section C: Jeff Series Breakdown (activity mode)
 - **Query**:
-  - Metrics: `prospects_reached,total_emails_sent,total_replies,crm_positive_replies,crm_meetings_booked,reply_rate,crm_positive_reply_rate,crm_booking_rate`
+  - Metrics: `prospects_reached,total_emails_sent,total_replies,total_bounces,crm_positive_replies,crm_meetings_booked,reply_rate,bounce_rate,reply_to_crm_positive_rate,crm_positive_reply_rate,crm_booking_rate`
   - Granularity: `weekly`
   - Client IDs: `25946,25948,223329,340115`
   - Group by: `series`
@@ -321,9 +320,12 @@ Each section below defines exactly what to query and how to display it. When bui
 - **Display**:
   - 4 toggle buttons: **Last 1 week** | **Last 2 weeks** | **Last 3 weeks** | **Last 4 weeks** (aggregate selected weeks per series)
   - All Jeff clients combined — series 6 from AMZ Ads and series 6 from Riverguide merge into one "Series 6" row
-  - Columns: Series, Prospects, Emails, Replies, Reply Rate, Positive Replies, Pos. Reply Rate, Meetings, Booking Rate, Pos. Reply to Booking Rate
+  - Columns: Series, Prospects, Emails, Bounce Rate, Replies, Reply Rate, Positive Replies, Pos. Reply Rate, `reply_to_crm_positive_rate`, Meetings, Booking Rate, Pos. Reply to Booking Rate
+  - Bounce Rate works correctly at series level (no CRM dependency).
+  - `reply_to_crm_positive_rate`, Pos Rate, Booking Rate, Pos→Booking will read as 0 at series level until the EQU-290 series-CRM fix ships — numerators get dropped.
   - Sorted by booking rate descending
-  - Fade out series with 0 meetings
+  - **All series rendered in full white** — do NOT fade out series with 0 meetings. Every series stays equally readable so zero-meeting performance sits side-by-side with high performers.
+  - **Use CRM metrics as specified** (`crm_positive_replies`, `crm_meetings_booked`), not SL proxies. Per EQU-290 the MCP currently drops CRM metrics when group_by=series, which will produce wrong (likely zero) values in this section — that is acceptable. The tech team is expected to restore CRM at series level; locking the spec to CRM means no spec re-flip when the fix lands.
 - **Business question answered**: "Which series is working across Jeff clients? Where should we shift volume?"
 
 
