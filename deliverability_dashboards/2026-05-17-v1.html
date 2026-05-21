@@ -1,0 +1,419 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Deliverability Dashboard</title>
+<style>
+  body { background:#0f1117; color:#e5e7eb; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; margin:0; padding:24px; }
+  h1 { margin:0 0 4px; font-size:22px; }
+  .sub { color:#9ca3af; margin:0 0 20px; font-size:13px; line-height:1.5; }
+
+  /* Tab UI */
+  .tabs { display:flex; gap:4px; border-bottom:1px solid #2a2e3a; margin:0 0 24px; }
+  .tab { background:transparent; border:none; color:#9ca3af; padding:11px 22px; cursor:pointer; font-size:14px; font-family:inherit; border-bottom:2px solid transparent; margin-bottom:-1px; font-weight:500; }
+  .tab:hover { color:#d1d5db; }
+  .tab.active { color:#fff; border-bottom-color:#6366f1; }
+  .tab-content { display:none; }
+  .tab-content.active { display:block; }
+
+  /* Card base (shared) */
+  .card { background:#1a1d27; border:1px solid #2a2e3a; border-radius:8px; margin-bottom:20px; }
+
+  /* Bounce-pattern card styling */
+  #tab-bounce .card { padding:18px; }
+  #tab-bounce .card h2 { margin:0 0 12px; font-size:15px; color:#d1d5db; font-weight:500; }
+  #tab-bounce .grid { display:grid; gap:20px; grid-template-columns:1fr; }
+  #tab-bounce .subgrid { display:grid; gap:18px; grid-template-columns:1fr 1fr; margin-top:4px; }
+  #tab-bounce .subgrid h3 { margin:0 0 6px; font-size:13px; font-weight:500; }
+  #tab-bounce .note { font-size:12px; color:#6b7280; margin:0 0 12px; }
+
+  /* Stage-duration card styling */
+  #tab-stage .stage-card { padding:20px; }
+  #tab-stage .stage-card h2 { margin:0 0 14px; font-size:17px; color:#fff; font-weight:600; }
+  #tab-stage .section-heading { margin:40px 0 6px; font-size:20px; color:#fff; font-weight:700; border-bottom:1px solid #2a2e3a; padding-bottom:10px; letter-spacing:0.3px; }
+  #tab-stage .section-blurb { color:#9ca3af; font-size:12px; margin:0 0 16px; line-height:1.6; max-width:920px; }
+  #tab-stage .table-wrap { overflow-x:auto; }
+  #tab-stage table { width:100%; border-collapse:collapse; font-size:13px; }
+  #tab-stage th { background:#22262f; color:#d1d5db; text-align:right; padding:9px 11px; font-weight:500; border-bottom:1px solid #2a2e3a; white-space:nowrap; }
+  #tab-stage th[colspan] { text-align:center; background:#1f232c; font-size:11px; color:#9ca3af; text-transform:uppercase; letter-spacing:0.5px; }
+  #tab-stage th[rowspan]:first-child { text-align:left; }
+  #tab-stage td { padding:9px 11px; text-align:right; border-bottom:1px solid #1f232c; font-variant-numeric: tabular-nums; }
+  #tab-stage td:first-child { text-align:left; color:#9ca3af; }
+  #tab-stage tr.total td { font-weight:700; background:#22262f; color:#fff; border-bottom:none; }
+  #tab-stage tr.total td:first-child { color:#fff; }
+  #tab-stage .dist { display:grid; grid-template-columns:auto auto; gap:6px 24px; font-size:13px; max-width:380px; }
+  #tab-stage .dist .label { color:#d1d5db; }
+  #tab-stage .dist .value { text-align:right; color:#9ca3af; font-variant-numeric:tabular-nums; }
+
+  .footer { margin-top:32px; color:#6b7280; font-size:12px; line-height:1.6; }
+  code { background:#22262f; padding:1px 5px; border-radius:3px; font-size:12px; }
+</style>
+</head>
+<body>
+  <h1>Deliverability Dashboard</h1>
+  <p class="sub">
+    <strong>Clients:</strong> Equal Collective, DTC Retail, Nexus
+    (Bounce Patterns tab also includes Mr. Prime from 2026-04-15 onward).<br>
+    <strong>Window:</strong> 2026-03-30 → today.<br>
+    <strong>Generated:</strong> 2026-05-17.
+  </p>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="bounce">Bounce Patterns</button>
+    <button class="tab" data-tab="stage">Stage Duration Analytics</button>
+  </div>
+
+  <!-- ─── TAB 1: BOUNCE PATTERNS ─── -->
+  <div class="tab-content active" id="tab-bounce">
+    <p class="sub" style="margin-top:-4px;">MerchantBots cohort (clients 108917, 82914, 51431, 33748; Mr. Prime sends excluded before 2026-04-15). Cohort attribution by email_1 send week. <strong style="color:#fbbf24;">Current week is partial</strong> — treat the last bar as preliminary.</p>
+    <div class="grid">
+      <div class="card"><h2>1 · Absolute bounce counts per week (stacked)</h2><canvas id="card1" height="120"></canvas></div>
+      <div class="card"><h2>2 · Share of bounces per week (100% stacked)</h2><canvas id="card2" height="120"></canvas></div>
+      <div class="card">
+        <h2>3 · Bounce rate per pattern per week (% of prospects)</h2>
+        <p class="note">Each pattern auto-scales so peaks and troughs are visible without Pattern A dominating the axis.</p>
+        <div class="subgrid">
+          <div><h3 style="color:#ef4444;">A — Google sender block</h3><canvas id="card3a" height="160"></canvas></div>
+          <div><h3 style="color:#f59e0b;">B — Cloudmark CSI (MailReef)</h3><canvas id="card3b" height="160"></canvas></div>
+          <div><h3 style="color:#3b82f6;">C — MS dead address (5.4.1)</h3><canvas id="card3c" height="160"></canvas></div>
+          <div><h3 style="color:#6b7280;">Other</h3><canvas id="card3d" height="160"></canvas></div>
+        </div>
+      </div>
+      <div class="card"><h2>4 · Total bounce rate per week (% of prospects)</h2><canvas id="card4" height="120"></canvas></div>
+    </div>
+  </div>
+
+  <!-- ─── TAB 2: STAGE DURATION ANALYTICS ─── -->
+  <div class="tab-content" id="tab-stage">
+    <p class="sub" style="margin-top:-4px;">
+      <strong>Bounce attribution:</strong> Smartlead's <code>lead_category_id = 9</code>.
+      <strong>Reply attribution:</strong> Smartlead's <code>sequence_number = 1</code> on a <code>reply_class = 'genuine'</code> REPLY message.<br>
+      <strong>Distinct Inboxes</strong> column shows how many unique inboxes contributed sends to each bucket. The Total row's distinct-inbox count is the union across all buckets (an inbox can appear in multiple buckets as it ages).
+    </p>
+    
+  <div class="card stage-card">
+    <h2>Inbox Provider Distribution (sending_warmup, our 3 clients)</h2>
+    <div class="dist">
+<div class="label">ZapMail (Google)</div><div class="value">222</div>
+<div class="label">Premium Inboxes (Google)</div><div class="value">177</div>
+<div class="label">Mailreef</div><div class="value">60</div>
+<div class="label">Icemail (Google)</div><div class="value">36</div>
+<div class="label">Zapmail (Outlook)</div><div class="value">24</div>
+<div class="label">Zapmail (Prewarmed)</div><div class="value">12</div>
+<div class="label">Icemail (Outlook)</div><div class="value">6</div>
+    </div>
+  </div>
+<h2 class="section-heading">Inbox Age — Cross-Sectional</h2>
+<p class="section-blurb">Buckets every email_1 send by the inbox's age (days since <code>smartlead_created_at</code>) at the moment of that send. Includes <em>all</em> matched sends since inbox creation date is never overwritten — no stage filter needed. All providers, all series.</p>
+
+  <div class="card stage-card">
+    <h2>Inbox Age — All Providers</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th rowspan="2">Inbox Age<br>(days)</th>
+            <th rowspan="2">Distinct Inboxes</th>
+            <th rowspan="2">Prospects</th>
+            <th colspan="2">Bounces (lead_category_id = 9)</th>
+            <th colspan="2">Email 1 Replies (sequence_number = 1)</th>
+          </tr>
+          <tr>
+            <th>Count</th><th>Rate</th>
+            <th>Count</th><th>Rate</th>
+          </tr>
+        </thead>
+        <tbody>
+  <tr><td>0-6</td><td>165</td><td>1,974</td><td>266</td><td>13.48%</td><td>34</td><td>1.72%</td></tr>
+  <tr><td>7-13</td><td>549</td><td>15,602</td><td>1,766</td><td>11.32%</td><td>341</td><td>2.19%</td></tr>
+  <tr><td>14-29</td><td>804</td><td>44,076</td><td>3,034</td><td>6.88%</td><td>1,003</td><td>2.28%</td></tr>
+  <tr><td>30-37</td><td>523</td><td>16,451</td><td>1,696</td><td>10.31%</td><td>269</td><td>1.64%</td></tr>
+  <tr><td>38-44</td><td>423</td><td>9,742</td><td>991</td><td>10.17%</td><td>166</td><td>1.70%</td></tr>
+  <tr><td>45-59</td><td>480</td><td>19,990</td><td>1,407</td><td>7.04%</td><td>321</td><td>1.61%</td></tr>
+  <tr><td>60-89</td><td>432</td><td>33,655</td><td>2,715</td><td>8.07%</td><td>555</td><td>1.65%</td></tr>
+  <tr><td>90-119</td><td>204</td><td>5,923</td><td>351</td><td>5.93%</td><td>85</td><td>1.44%</td></tr>
+  <tr><td>120+</td><td>120</td><td>6,636</td><td>130</td><td>1.96%</td><td>105</td><td>1.58%</td></tr>
+  <tr class="total"><td>Total</td><td>1,359</td><td>154,049</td><td>12,356</td><td>8.02%</td><td>2,879</td><td>1.87%</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+<h2 class="section-heading">Stage Duration — Cross-Sectional, by Provider</h2>
+<p class="section-blurb">Bucketed by <em>days since the inbox entered the current <code>sending_warmup</code> stage</em>. Filter: inboxes currently in <code>sending_warmup</code>, only sends made <em>after</em> the inbox entered that stage (~50% of cohort). Cards split by provider, largest fleet first. All series included.</p>
+
+  <div class="card stage-card">
+    <h2>Stage Duration — All Providers</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th rowspan="2">Stage Duration<br>(days)</th>
+            <th rowspan="2">Distinct Inboxes</th>
+            <th rowspan="2">Prospects</th>
+            <th colspan="2">Bounces (lead_category_id = 9)</th>
+            <th colspan="2">Email 1 Replies (sequence_number = 1)</th>
+          </tr>
+          <tr>
+            <th>Count</th><th>Rate</th>
+            <th>Count</th><th>Rate</th>
+          </tr>
+        </thead>
+        <tbody>
+  <tr><td>0-6</td><td>594</td><td>23,265</td><td>2,089</td><td>8.98%</td><td>512</td><td>2.20%</td></tr>
+  <tr><td>7-13</td><td>452</td><td>13,302</td><td>1,180</td><td>8.87%</td><td>291</td><td>2.19%</td></tr>
+  <tr><td>14-29</td><td>394</td><td>24,066</td><td>1,983</td><td>8.24%</td><td>537</td><td>2.23%</td></tr>
+  <tr><td>30-37</td><td>240</td><td>6,314</td><td>561</td><td>8.89%</td><td>108</td><td>1.71%</td></tr>
+  <tr><td>38-44</td><td>130</td><td>2,722</td><td>134</td><td>4.92%</td><td>36</td><td>1.32%</td></tr>
+  <tr><td>45-59</td><td>27</td><td>1,626</td><td>108</td><td>6.64%</td><td>31</td><td>1.91%</td></tr>
+  <tr><td>60-89</td><td>15</td><td>234</td><td>3</td><td>1.28%</td><td>2</td><td>0.85%</td></tr>
+  <tr><td>90-119</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+  <tr><td>120+</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+  <tr class="total"><td>Total</td><td>627</td><td>71,529</td><td>6,058</td><td>8.47%</td><td>1,517</td><td>2.12%</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+
+  <div class="card stage-card">
+    <h2>Stage Duration — ZapMail (Google)</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th rowspan="2">Stage Duration<br>(days)</th>
+            <th rowspan="2">Distinct Inboxes</th>
+            <th rowspan="2">Prospects</th>
+            <th colspan="2">Bounces (lead_category_id = 9)</th>
+            <th colspan="2">Email 1 Replies (sequence_number = 1)</th>
+          </tr>
+          <tr>
+            <th>Count</th><th>Rate</th>
+            <th>Count</th><th>Rate</th>
+          </tr>
+        </thead>
+        <tbody>
+  <tr><td>0-6</td><td>234</td><td>9,694</td><td>888</td><td>9.16%</td><td>216</td><td>2.23%</td></tr>
+  <tr><td>7-13</td><td>180</td><td>4,993</td><td>409</td><td>8.19%</td><td>98</td><td>1.96%</td></tr>
+  <tr><td>14-29</td><td>184</td><td>10,435</td><td>709</td><td>6.79%</td><td>230</td><td>2.20%</td></tr>
+  <tr><td>30-37</td><td>93</td><td>2,248</td><td>199</td><td>8.85%</td><td>33</td><td>1.47%</td></tr>
+  <tr><td>38-44</td><td>58</td><td>1,027</td><td>8</td><td>0.78%</td><td>14</td><td>1.36%</td></tr>
+  <tr><td>45-59</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+  <tr><td>60-89</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+  <tr><td>90-119</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+  <tr><td>120+</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+  <tr class="total"><td>Total</td><td>252</td><td>28,397</td><td>2,213</td><td>7.79%</td><td>591</td><td>2.08%</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+
+  <div class="card stage-card">
+    <h2>Stage Duration — Premium Inboxes (Google)</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th rowspan="2">Stage Duration<br>(days)</th>
+            <th rowspan="2">Distinct Inboxes</th>
+            <th rowspan="2">Prospects</th>
+            <th colspan="2">Bounces (lead_category_id = 9)</th>
+            <th colspan="2">Email 1 Replies (sequence_number = 1)</th>
+          </tr>
+          <tr>
+            <th>Count</th><th>Rate</th>
+            <th>Count</th><th>Rate</th>
+          </tr>
+        </thead>
+        <tbody>
+  <tr><td>0-6</td><td>192</td><td>7,671</td><td>713</td><td>9.29%</td><td>181</td><td>2.36%</td></tr>
+  <tr><td>7-13</td><td>126</td><td>4,095</td><td>321</td><td>7.84%</td><td>105</td><td>2.56%</td></tr>
+  <tr><td>14-29</td><td>99</td><td>7,451</td><td>569</td><td>7.64%</td><td>193</td><td>2.59%</td></tr>
+  <tr><td>30-37</td><td>57</td><td>2,125</td><td>155</td><td>7.29%</td><td>36</td><td>1.69%</td></tr>
+  <tr><td>38-44</td><td>39</td><td>1,008</td><td>73</td><td>7.24%</td><td>9</td><td>0.89%</td></tr>
+  <tr><td>45-59</td><td>27</td><td>1,626</td><td>108</td><td>6.64%</td><td>31</td><td>1.91%</td></tr>
+  <tr><td>60-89</td><td>15</td><td>234</td><td>3</td><td>1.28%</td><td>2</td><td>0.85%</td></tr>
+  <tr><td>90-119</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+  <tr><td>120+</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+  <tr class="total"><td>Total</td><td>207</td><td>24,210</td><td>1,942</td><td>8.02%</td><td>557</td><td>2.30%</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+
+  <div class="card stage-card">
+    <h2>Stage Duration — Mailreef</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th rowspan="2">Stage Duration<br>(days)</th>
+            <th rowspan="2">Distinct Inboxes</th>
+            <th rowspan="2">Prospects</th>
+            <th colspan="2">Bounces (lead_category_id = 9)</th>
+            <th colspan="2">Email 1 Replies (sequence_number = 1)</th>
+          </tr>
+          <tr>
+            <th>Count</th><th>Rate</th>
+            <th>Count</th><th>Rate</th>
+          </tr>
+        </thead>
+        <tbody>
+  <tr><td>0-6</td><td>60</td><td>2,031</td><td>303</td><td>14.92%</td><td>35</td><td>1.72%</td></tr>
+  <tr><td>7-13</td><td>60</td><td>2,047</td><td>316</td><td>15.44%</td><td>40</td><td>1.95%</td></tr>
+  <tr><td>14-29</td><td>60</td><td>3,618</td><td>580</td><td>16.03%</td><td>68</td><td>1.88%</td></tr>
+  <tr><td>30-37</td><td>60</td><td>1,366</td><td>177</td><td>12.96%</td><td>28</td><td>2.05%</td></tr>
+  <tr><td>38-44</td><td>15</td><td>339</td><td>43</td><td>12.68%</td><td>3</td><td>0.88%</td></tr>
+  <tr><td>45-59</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+  <tr><td>60-89</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+  <tr><td>90-119</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+  <tr><td>120+</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+  <tr class="total"><td>Total</td><td>60</td><td>9,401</td><td>1,419</td><td>15.09%</td><td>174</td><td>1.85%</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+
+  <div class="card stage-card">
+    <h2>Stage Duration — Icemail (Google)</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th rowspan="2">Stage Duration<br>(days)</th>
+            <th rowspan="2">Distinct Inboxes</th>
+            <th rowspan="2">Prospects</th>
+            <th colspan="2">Bounces (lead_category_id = 9)</th>
+            <th colspan="2">Email 1 Replies (sequence_number = 1)</th>
+          </tr>
+          <tr>
+            <th>Count</th><th>Rate</th>
+            <th>Count</th><th>Rate</th>
+          </tr>
+        </thead>
+        <tbody>
+  <tr><td>0-6</td><td>51</td><td>1,997</td><td>120</td><td>6.01%</td><td>53</td><td>2.65%</td></tr>
+  <tr><td>7-13</td><td>41</td><td>761</td><td>48</td><td>6.31%</td><td>18</td><td>2.37%</td></tr>
+  <tr><td>14-29</td><td>21</td><td>1,057</td><td>53</td><td>5.01%</td><td>16</td><td>1.51%</td></tr>
+  <tr><td>30-37</td><td>12</td><td>230</td><td>10</td><td>4.35%</td><td>2</td><td>0.87%</td></tr>
+  <tr><td>38-44</td><td>12</td><td>258</td><td>10</td><td>3.88%</td><td>7</td><td>2.71%</td></tr>
+  <tr><td>45-59</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+  <tr><td>60-89</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+  <tr><td>90-119</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+  <tr><td>120+</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+  <tr class="total"><td>Total</td><td>51</td><td>4,303</td><td>241</td><td>5.60%</td><td>96</td><td>2.23%</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+
+  <div class="card stage-card">
+    <h2>Stage Duration — Zapmail (Outlook)</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th rowspan="2">Stage Duration<br>(days)</th>
+            <th rowspan="2">Distinct Inboxes</th>
+            <th rowspan="2">Prospects</th>
+            <th colspan="2">Bounces (lead_category_id = 9)</th>
+            <th colspan="2">Email 1 Replies (sequence_number = 1)</th>
+          </tr>
+          <tr>
+            <th>Count</th><th>Rate</th>
+            <th>Count</th><th>Rate</th>
+          </tr>
+        </thead>
+        <tbody>
+  <tr><td>0-6</td><td>39</td><td>1,356</td><td>17</td><td>1.25%</td><td>15</td><td>1.11%</td></tr>
+  <tr><td>7-13</td><td>27</td><td>748</td><td>18</td><td>2.41%</td><td>12</td><td>1.60%</td></tr>
+  <tr><td>14-29</td><td>12</td><td>474</td><td>2</td><td>0.42%</td><td>6</td><td>1.27%</td></tr>
+  <tr><td>30-37</td><td>3</td><td>73</td><td>1</td><td>1.37%</td><td>2</td><td>2.74%</td></tr>
+  <tr><td>38-44</td><td>3</td><td>48</td><td>0</td><td>0.00%</td><td>1</td><td>2.08%</td></tr>
+  <tr><td>45-59</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+  <tr><td>60-89</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+  <tr><td>90-119</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+  <tr><td>120+</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+  <tr class="total"><td>Total</td><td>39</td><td>2,699</td><td>38</td><td>1.41%</td><td>36</td><td>1.33%</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  </div>
+
+  <p class="footer">
+    Source: <code>orange_schema.jeff_sl_lead_messages</code> joined to <code>orange_schema.jeff_sl_email_accounts</code> via <code>from_email</code>.<br>
+    SQL: <code>queries/pattern_abc_wow_dashboard.sql</code>, <code>queries/inbox_age_bounce_reply.sql</code>, <code>queries/stage_duration_bounce_reply.sql</code>.<br>
+    Rebuild: <code>python3 scripts/update_deliverability.py</code>.
+  </p>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+  // Tab switching
+  document.querySelectorAll('.tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+    });
+  });
+
+  // Bounce-patterns charts
+  const data   = {"weeks": ["2026-03-30", "2026-04-06", "2026-04-13", "2026-04-20", "2026-04-27", "2026-05-04", "2026-05-11"], "counts": {"A \u2014 Google sender block": [56, 1550, 2656, 2431, 1485, 1402, 784], "B \u2014 Cloudmark CSI (MailReef)": [279, 214, 765, 636, 538, 411, 156], "C \u2014 MS dead address (5.4.1)": [112, 113, 314, 322, 323, 180, 153], "Other": [203, 182, 730, 713, 763, 326, 278]}, "shares": {"A \u2014 Google sender block": [8.62, 75.28, 59.48, 59.26, 47.76, 60.46, 57.18], "B \u2014 Cloudmark CSI (MailReef)": [42.92, 10.39, 17.13, 15.5, 17.3, 17.72, 11.38], "C \u2014 MS dead address (5.4.1)": [17.23, 5.49, 7.03, 7.85, 10.39, 7.76, 11.16], "Other": [31.23, 8.84, 16.35, 17.38, 24.54, 14.06, 20.28]}, "rates": {"A \u2014 Google sender block": [0.34, 9.96, 5.64, 4.93, 3.34, 4.46, 3.85], "B \u2014 Cloudmark CSI (MailReef)": [1.68, 1.38, 1.62, 1.29, 1.21, 1.31, 0.77], "C \u2014 MS dead address (5.4.1)": [0.67, 0.73, 0.67, 0.65, 0.73, 0.57, 0.75], "Other": [1.22, 1.17, 1.55, 1.45, 1.71, 1.04, 1.37]}, "total_rates": [3.92, 13.24, 9.48, 8.32, 6.98, 7.38, 6.73]};
+  const order  = ["A \u2014 Google sender block", "B \u2014 Cloudmark CSI (MailReef)", "C \u2014 MS dead address (5.4.1)", "Other"];
+  const colors = {"A \u2014 Google sender block": "#ef4444", "B \u2014 Cloudmark CSI (MailReef)": "#f59e0b", "C \u2014 MS dead address (5.4.1)": "#3b82f6", "Other": "#6b7280"};
+
+  const baseOpts = {
+    responsive: true,
+    plugins: { legend: { labels: { color: "#d1d5db" } } },
+    scales: {
+      x: { ticks: { color: "#9ca3af" }, grid: { color: "#2a2e3a" } },
+      y: { ticks: { color: "#9ca3af" }, grid: { color: "#2a2e3a" } }
+    }
+  };
+
+  const ds = (label, arr) => ({ label, data: arr, backgroundColor: colors[label], borderColor: colors[label] });
+
+  new Chart(document.getElementById("card1"), {
+    type: "bar",
+    data: { labels: data.weeks, datasets: order.map(p => ({ ...ds(p, data.counts[p]), stack: "s1" })) },
+    options: { ...baseOpts, scales: { ...baseOpts.scales, x: { ...baseOpts.scales.x, stacked: true }, y: { ...baseOpts.scales.y, stacked: true } } }
+  });
+
+  new Chart(document.getElementById("card2"), {
+    type: "bar",
+    data: { labels: data.weeks, datasets: order.map(p => ({ ...ds(p, data.shares[p]), stack: "s1" })) },
+    options: { ...baseOpts, scales: { ...baseOpts.scales, x: { ...baseOpts.scales.x, stacked: true }, y: { ...baseOpts.scales.y, stacked: true, max: 100 } } }
+  });
+
+  [["card3a", order[0]], ["card3b", order[1]], ["card3c", order[2]], ["card3d", order[3]]].forEach(([id, p]) => {
+    new Chart(document.getElementById(id), {
+      type: "line",
+      data: { labels: data.weeks, datasets: [{ ...ds(p, data.rates[p]), fill: false, tension: 0.2, pointRadius: 4 }] },
+      options: { ...baseOpts, plugins: { legend: { display: false } } }
+    });
+  });
+
+  new Chart(document.getElementById("card4"), {
+    type: "line",
+    data: { labels: data.weeks, datasets: [{
+      label: "Total bounce rate",
+      data: data.total_rates,
+      borderColor: "#10b981",
+      backgroundColor: "#10b981",
+      fill: false,
+      tension: 0.2,
+      pointRadius: 4
+    }]},
+    options: baseOpts
+  });
+</script>
+</body>
+</html>
